@@ -94,7 +94,8 @@ fun PeopleScreen() {
         // The top row with the search bar
         Row(
             modifier = Modifier.align(Alignment.TopCenter)
-                .background(color = Color.Gray).fillMaxWidth().padding(top = 30.dp),
+//                .background(color = Color.Gray)
+                .fillMaxWidth().padding(top = 30.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -123,7 +124,7 @@ fun PeopleScreen() {
             onClick = {},
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(bottom = 60.dp)
+                .padding(bottom = 110.dp)
                 .background(color = Color.Gray)
 
         ) {
@@ -135,7 +136,8 @@ fun PeopleScreen() {
 
 
         LazyColumn (
-            modifier = Modifier.padding(top = 100.dp, bottom = 60.dp)
+
+            modifier = Modifier.padding(top = 100.dp, bottom = 100.dp)
         ){
             ids.forEach { id ->
                 item {
@@ -177,22 +179,6 @@ fun PeopleScreen() {
                     }
 
                 }
-            }
-        }
-
-
-
-        Row (
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .background(color = Color.Red)
-        )
-        {
-            Column {
-                Text(text = "Bottom tabs", fontSize = 30.sp)
-                Spacer(modifier = Modifier.padding(10.dp) )
             }
         }
     }

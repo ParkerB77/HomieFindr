@@ -75,8 +75,8 @@ private fun BottomBar(nav: NavHostController) {
 @Composable
 private fun NavGraph(nav: NavHostController, paddingValues: androidx.compose.foundation.layout.PaddingValues) {
     NavHost(navController = nav, startDestination = Route.Messages.route) {
-        composable(Route.Home.route) { PlaceholderScreen("Home") }
-        composable(Route.People.route) { PlaceholderScreen("People") }
+        composable(Route.Home.route) { ApartmentsScreen() }
+        composable(Route.People.route) { PeopleScreen() }
         messagesGraph(nav)
         composable(Route.Profile.route) { ProfileScreen() }
     }
@@ -98,4 +98,5 @@ private fun NavGraphBuilder.messagesGraph(nav: NavHostController) {
             onBack = { nav.popBackStack() }
         )
     }
+
 }
