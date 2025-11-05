@@ -1,3 +1,4 @@
+// AppNav.kt
 package com.cs407.homiefindr.ui.navigation
 
 import androidx.compose.material.icons.Icons
@@ -19,6 +20,7 @@ import androidx.navigation.navArgument
 import com.cs407.homiefindr.ui.screen.*
 
 sealed class Route(val route: String) {
+    data object Login : Route("login")
     data object Home : Route("home")
     data object People : Route("people")
     data object Messages : Route("messages")
@@ -39,12 +41,10 @@ fun AppRoot() {
     val nav = rememberNavController()
     val backEntry by nav.currentBackStackEntryAsState()
     val route = backEntry?.destination?.route ?: ""
-    val showBottomBar = !route.startsWith("chat")
+    val showBottomBar = route.isNotEmpty() && !route.startsWith("chat") && route != Route.Login.route
 
     Scaffold(
-        bottomBar = {
-            if (showBottomBar) BottomBar(nav)
-        }
+        bottomBar = { if (showBottomBar) BottomBar(nav) }
     ) { padding ->
         NavGraph(nav, paddingValues = padding)
     }
@@ -73,12 +73,29 @@ private fun BottomBar(nav: NavHostController) {
 }
 
 @Composable
-private fun NavGraph(nav: NavHostController, paddingValues: androidx.compose.foundation.layout.PaddingValues) {
-    NavHost(navController = nav, startDestination = Route.Messages.route) {
-        composable(Route.Home.route) { PlaceholderScreen("Home") }
-        composable(Route.People.route) { PlaceholderScreen("People") }
+private fun NavGraph(
+    nav: NavHostController,
+    paddingValues: androidx.compose.foundation.layout.PaddingValues
+) {
+    NavHost(
+        navController = nav,
+        startDestination = Route.Login.route // always Login on app launch
+    ) {
+        composable(Route.Login.route) {
+            LoginPage(
+                loginButtonClick = { _ ->
+                    nav.navigate(Route.Messages.route) {
+                        popUpTo(Route.Login.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
+        composable(Route.Home.route) { ApartmentsScreen() }
+        composable(Route.People.route) { PeopleScreen() }
         messagesGraph(nav)
-        composable(Route.Profile.route) { ProfileScreen() }
+        composable(Route.Profile.route) { ProfileScreen() } // no logout yet
     }
 }
 
