@@ -9,10 +9,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.FilterAlt
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -41,51 +45,6 @@ fun PeopleScreen() {
 
     val ids = intArrayOf(0, 1, 2, 3, 4)
 
-//    Column (
-//        modifier = Modifier.fillMaxSize()
-//    ){
-//        Spacer(modifier = Modifier.fillMaxWidth().background(color = Color.Gray).padding(20.dp))
-//        Row(
-//            modifier = Modifier
-//                .background(color = Color.Gray).fillMaxWidth(),
-//            horizontalArrangement = Arrangement.SpaceEvenly,
-//            verticalAlignment = Alignment.CenterVertically
-//        ) {
-//            Text(text = "[Search bar]")
-//            IconButton(
-//                onClick = {/* do something*/ }
-//            ) {
-//                Icon(
-//                    imageVector = Icons.Default.Settings,
-//                    contentDescription = "filter button"
-//                )
-//            }
-//
-//        }
-//
-//        LazyColumn (){
-//            ids.forEach { id ->
-//                item {
-//                    ElevatedCard (
-//                        modifier = Modifier.fillMaxWidth()
-//                    ) {
-//                        Text(text = "" + id)
-//
-//                    }
-//
-//                }
-//            }
-//        }
-//
-//
-//
-//        Row (verticalAlignment = Alignment.Bottom,
-//            horizontalArrangement = Arrangement.Center,
-//            modifier = Modifier.background(color = Color.Red)) {
-//            //.fillMaxSize().padding(20.dp)
-//            Text(text = "Bottom tabs")
-//        }
-//    }
 
     Box (
         modifier = Modifier.fillMaxSize()
@@ -107,12 +66,12 @@ fun PeopleScreen() {
 //                expanded = expanded,
 //                onExpandedChange = {expanded = it}
 //            ) { }
+            //Filter button
             IconButton(
                 onClick = {/* do something*/ }
             ) {
                 Icon(
-                    //placeholder for the filter button
-                    imageVector = Icons.Default.Settings,
+                    imageVector = Icons.Default.FilterAlt,
                     contentDescription = "filter button"
                 )
             }
@@ -125,18 +84,18 @@ fun PeopleScreen() {
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(bottom = 110.dp)
-                .background(color = Color.Gray)
+//                .background(color = Color.Gray)
 
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
-                contentDescription = "add button"
+                contentDescription = "add button",
+                modifier = Modifier.size(40.dp)
             )
         }
 
 
         LazyColumn (
-
             modifier = Modifier.padding(top = 100.dp, bottom = 100.dp)
         ){
             ids.forEach { id ->
@@ -144,7 +103,7 @@ fun PeopleScreen() {
                     ElevatedCard (
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 10.dp)
+
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -152,26 +111,28 @@ fun PeopleScreen() {
 
                         ) {
                             //profile picture and name
-                            Column {
-                                Text(text = "image placeholder")
+                            Column (
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ){
+                                Icon(
+                                    imageVector = Icons.Default.AccountCircle,
+                                    contentDescription = "Profile image",
+                                    modifier = Modifier.size(70.dp)
+                                )
                                 Text(text = "name placeholder")
                             }
 
-
-                            //user information
-                            Card {
-//                                Text(text = "" + id)
-                                Column {
-                                    Text(text = "Requirements")
-                                    HorizontalDivider()
-                                    Icon(
-                                        imageVector = Icons.Default.DateRange,
-                                        contentDescription = "icon for time"
-                                    )
-
-                                }
+                            // Bio
+                            Column {
+                                Text(text = "Requirements")
+                                HorizontalDivider()
+                                Icon(
+                                    imageVector = Icons.Default.DateRange,
+                                    contentDescription = "icon for time"
+                                )
 
                             }
+
                         }
 
 
