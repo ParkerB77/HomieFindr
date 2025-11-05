@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -47,6 +48,23 @@ fun ProfileScreen() {
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(Modifier.height(24.dp))
+        FloatingActionButton(
+            onClick = {
+                // TODO: go to FavoriteScreen
+            },
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Text(
+                text = "Favorites"
+            )
+            // or alternative with icon
+//            Icon(
+//                imageVector = Icons.Default.Favorite,
+//                contentDescription = "Favorite"
+//            )
+        }
+        Spacer(Modifier.height(24.dp))
         // 头像（优先显示选择的 Uri）
         if (state.avatarUri != null) {
             AsyncImage(

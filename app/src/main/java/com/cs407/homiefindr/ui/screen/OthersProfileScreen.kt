@@ -31,7 +31,7 @@ fun OthersProfileScreen(modifier: Modifier = Modifier) {
                 .padding(innerPadding)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Top
         ) {
             ElevatedCard(
                 modifier = Modifier
@@ -51,21 +51,30 @@ fun OthersProfileScreen(modifier: Modifier = Modifier) {
                     Spacer(modifier = Modifier.height(16.dp))
                     // place holder for user name
                     Text(
-                        text = "user name ph",
+                        text = "ex: Bob",
                         style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    // place holder for tags
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        text = "ex: UW MADISON | CS | SENIOR",
+                        style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     // place holder for bio
                     Text(
-                        text = "bio ph",
+                        text = "ex:  \n" +
+                                "Clean and organized.\n" +
+                                "Enjoys gaming, simple cooking, \n" +
+                                "and quiet study \n" +
+                                "evenings. \n" +
+                                "Looking for a \n" +
+                                "respectful roommate \n" +
+                                "with a similar routine.",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Text(
-                        text = "",
-                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
