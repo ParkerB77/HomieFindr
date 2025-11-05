@@ -92,8 +92,8 @@ private fun NavGraph(
             )
         }
 
-        composable(Route.Home.route) { PlaceholderScreen("Home") }
-        composable(Route.People.route) { PlaceholderScreen("People") }
+        composable(Route.Home.route) { ApartmentsScreen() }
+        composable(Route.People.route) { PeopleScreen() }
         messagesGraph(nav)
         composable(Route.Profile.route) { ProfileScreen() } // no logout yet
     }
