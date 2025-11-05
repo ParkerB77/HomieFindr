@@ -1,3 +1,14 @@
 <resources>
     <string name="app_name">HomieFindr</string>
+    <string name="enter_email">Enter Email</string>
+    <string name="enter_password">Enter Password</string>
+    <string name="login_or_signup">Log In or Sign Up</string>
+
+    <string name="email_is_empty">Email is empty</string>
+    <string name="invalid_email_format">Invalid Email Format</string>
+    <string name="password_is_empty">Password is empty</string>
+    <string name="password_is_too_short">Password is too short</string>
+    <string name="password_requirements">
+        Password should contain at least one lowercase letter, one uppercase letter, and one digit
+    </string>
 </resources>
