@@ -34,7 +34,7 @@ import androidx.compose.material3.SearchBar
 import androidx.compose.ui.res.stringResource
 
 @Composable
-fun PeopleScreen() {
+fun PeopleScreen( onClickPerson: () -> Unit) {
 
     val ids = intArrayOf(0, 1, 2, 3, 4)
     var search: String by remember {mutableStateOf("")}
@@ -117,11 +117,16 @@ fun PeopleScreen() {
                             Column (
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ){
-                                Icon(
-                                    imageVector = Icons.Default.AccountCircle,
-                                    contentDescription = "Profile image",
-                                    modifier = Modifier.size(70.dp)
-                                )
+                                IconButton(
+                                    onClick = onClickPerson
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AccountCircle,
+                                        contentDescription = "Profile image",
+                                        modifier = Modifier.size(70.dp)
+                                    )
+                                }
+
                                 Text(text = "name placeholder")
                             }
 
@@ -161,8 +166,8 @@ fun PeopleScreen() {
 
 }
 
-@Preview
-@Composable
-fun PeoplePrev() {
-    PeopleScreen()
-}
+//@Preview
+//@Composable
+//fun PeoplePrev() {
+//    PeopleScreen()
+//}

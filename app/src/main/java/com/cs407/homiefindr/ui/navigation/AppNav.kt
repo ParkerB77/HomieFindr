@@ -26,6 +26,8 @@ sealed class Route(val route: String) {
     data object Messages : Route("messages")
     data object Chat : Route("chat/{chatId}")
     data object Profile : Route("profile")
+
+    data object OtherProfile : Route("OthersProfileScreen")
 }
 
 data class BottomItem(val route: String, val label: String, val icon: ImageVector)
@@ -93,7 +95,8 @@ private fun NavGraph(
         }
 
         composable(Route.Home.route) { ApartmentsScreen() }
-        composable(Route.People.route) { PeopleScreen() }
+        composable(Route.OtherProfile.route) { OthersProfileScreen() }
+        composable(Route.People.route) { PeopleScreen( onClickPerson = { nav.navigate(Route.OtherProfile.route) }) }
         messagesGraph(nav)
         composable(Route.Profile.route) { ProfileScreen() } // no logout yet
     }
