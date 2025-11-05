@@ -12,12 +12,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,12 +30,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.SearchBar
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun PeopleScreen() {
 
     val ids = intArrayOf(0, 1, 2, 3, 4)
-
+    var search: String by remember {mutableStateOf("")}
 
     Box (
         modifier = Modifier.fillMaxSize()
@@ -47,11 +51,21 @@ fun PeopleScreen() {
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            var expanded by remember { mutableStateOf(false) }
-            // TODO: Search bar
-            Text(text = "[Search bar]")
+//            var expanded by remember { mutableStateOf(false) }
+            //  Search bar
+
+            OutlinedTextField(
+                value = search,
+                onValueChange = { search = it },
+                label = { Text("search") }
+            )
 //            SearchBar(
-//                inputField = TODO(),
+//                inputField = {
+//                    OutlinedTextField(
+//                        value = search,
+//                        onValueChange = {search = it}
+//                    )
+//                },
 //                expanded = expanded,
 //                onExpandedChange = {expanded = it}
 //            ) { }
@@ -115,10 +129,21 @@ fun PeopleScreen() {
                             Column {
                                 Text(text = "Requirements")
                                 HorizontalDivider()
-                                Icon(
-                                    imageVector = Icons.Default.DateRange,
-                                    contentDescription = "icon for time"
-                                )
+                                Row {
+                                    Icon(
+                                        imageVector = Icons.Default.DateRange,
+                                        contentDescription = "icon for time"
+                                    )
+                                    Text("Spring")
+                                    Icon(
+                                        imageVector = Icons.Default.AttachMoney,
+                                        contentDescription = "Money Icon"
+                                    )
+                                    Text("$900")
+                                }
+                                Text("Looking for one other roomate, no pets")
+
+
 
                             }
 
