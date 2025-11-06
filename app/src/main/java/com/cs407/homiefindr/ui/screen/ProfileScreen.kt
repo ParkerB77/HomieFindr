@@ -33,7 +33,6 @@ fun ProfileScreen() {
     var state by remember { mutableStateOf(ProfileUiState()) }
     var editing by remember { mutableStateOf(false) }
 
-    // 系统相册选择器（Android 13+ 无需读存储权限；更低版本也能回落工作）
     val pickAvatar = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
@@ -47,7 +46,7 @@ fun ProfileScreen() {
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 头像（优先显示选择的 Uri）
+        // image
         if (state.avatarUri != null) {
             AsyncImage(
                 model = state.avatarUri,
@@ -66,7 +65,7 @@ fun ProfileScreen() {
 
         Spacer(Modifier.height(8.dp))
 
-        // 名字：编辑/只读两种状态
+        // edit/read
         if (editing) {
             OutlinedTextField(
                 value = state.name,
