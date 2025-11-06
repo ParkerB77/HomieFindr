@@ -49,20 +49,26 @@ fun ProfileScreen() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(24.dp))
+        // for user to go into their favorite
         FloatingActionButton(
             onClick = {
                 // TODO: go to FavoriteScreen
             },
             modifier = Modifier.align(Alignment.End)
         ) {
-            Text(
-                text = "Favorites"
-            )
-            // or alternative with icon
-//            Icon(
-//                imageVector = Icons.Default.Favorite,
-//                contentDescription = "Favorite"
-//            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = "Favorite"
+                )
+                Text(
+                    text = "Favorites",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
         }
         Spacer(Modifier.height(24.dp))
         // 头像（优先显示选择的 Uri）
