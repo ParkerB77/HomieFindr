@@ -31,7 +31,7 @@ sealed class Route(val route: String) {
 
     data object OtherProfile : Route("OthersProfileScreen")
 
-    data object AddPerson : Route("AddPostScreen")
+    data object AddPerson : Route("AddPeopleScreen")
 
     data object AddApartment : Route("AddPostScreen")
 }
@@ -114,8 +114,8 @@ private fun NavGraph(
 
         composable(Route.Home.route) { ApartmentsScreen( onClickAdd = { nav.navigate(Route.AddApartment.route)}) }
         composable(Route.OtherProfile.route) { OthersProfileScreen() }
-        composable(Route.AddPerson.route) { AddPostScreen(isPeople = true, clickBack = { nav.navigate(Route.People.route) }) }
-        composable(Route.AddApartment.route) { AddPostScreen(isPeople = false, clickBack = { nav.navigate(Route.Home.route) }) }
+        composable(Route.AddPerson.route) { AddPeopleScreen(clickBack = { nav.navigate(Route.People.route) }) }
+        composable(Route.AddApartment.route) { AddPostScreen(clickBack = { nav.navigate(Route.Home.route) }) }
         composable(Route.People.route) { PeopleScreen(onClickPerson = { nav.navigate(Route.OtherProfile.route) }, onClickAdd = { nav.navigate(Route.AddPerson.route)}) }
         messagesGraph(nav)
 
