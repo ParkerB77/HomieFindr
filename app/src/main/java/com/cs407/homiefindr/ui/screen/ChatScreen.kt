@@ -13,6 +13,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.google.firebase.Timestamp                        // ★ new
+import com.google.firebase.auth.ktx.auth                    // ★ new
+import com.google.firebase.firestore.FieldValue             // ★ new
+import com.google.firebase.firestore.Query                 // ★ new
+import com.google.firebase.firestore.SetOptions            // ★ new
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.util.UUID
@@ -28,28 +35,84 @@ data class Message(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
-    chatId: String,
+    chatId: String,            // this is the conversation document id
     onBack: () -> Unit
 ) {
-    var messages by remember {
-        mutableStateOf(
-            listOf(
-                Message(sender = "Bob", text = "Hi, I'm interested in renting.", mine = false),
-                Message(sender = "Me",  text = "Great! When can you tour?",  mine = true)
-            )
-        )
-    }
+    val db = remember { Firebase.firestore }               // ★ Firestore
+    val currentUserId = Firebase.auth.currentUser?.uid ?: "" // ★ who am I
+
+    var messages by remember { mutableStateOf<List<Message>>(emptyList()) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
+    // ★ Listen to messages under conversations/{chatId}/messages in realtime
+    DisposableEffect(chatId, currentUserId) {
+        val registration = db.collection("conversations")
+            .document(chatId)
+            .collection("messages")
+            .orderBy("createdAt", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    messages = snapshot.documents.map { doc ->
+                        val senderId = doc.getString("senderId") ?: ""
+                        val text = doc.getString("text") ?: ""
+                        val ts: Timestamp? = doc.getTimestamp("createdAt")
+                        val instant = ts?.toDate()?.toInstant() ?: Instant.EPOCH
+                        Message(
+                            id = doc.id,
+                            sender = senderId,
+                            text = text,
+                            time = instant,
+                            mine = senderId == currentUserId
+                        )
+                    }
+                }
+            }
+
+        onDispose {
+            registration.remove()
+        }
+    }
+
+    // auto-scroll to bottom when new messages arrive
     LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex)
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.lastIndex)
+        }
+    }
+
+    // ★ helper function to send a message to Firestore
+    fun sendMessage(text: String) {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty() || currentUserId.isBlank()) return
+
+        val conversationRef = db.collection("conversations").document(chatId)
+
+        // add message document
+        val msgData = mapOf(
+            "senderId" to currentUserId,
+            "text" to trimmed,
+            "createdAt" to FieldValue.serverTimestamp()
+        )
+
+        conversationRef.collection("messages").add(msgData)
+
+        // update conversation metadata (for list screen)
+        val convoUpdate = mapOf(
+            "lastMsg" to trimmed,
+            "updatedAt" to FieldValue.serverTimestamp()
+            // You can also set "title" and "members" when creating the conversation
+        )
+        conversationRef.set(convoUpdate, SetOptions.merge())
     }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(chatId) },
+                title = { Text(chatId) }, // you can later replace with conversation title
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -59,44 +122,46 @@ fun ChatScreen(
         },
         bottomBar = {
             ChatInputBar { text ->
-                val t = text.trim()
-                if (t.isNotEmpty()) {
-                    messages = messages + Message(sender = "Me", text = t, mine = true)
-                    scope.launch { listState.animateScrollToItem(messages.lastIndex) }
-                    // TODO: 发到后端；收到对方时 append mine=false 的 Message
+                scope.launch {
+                    sendMessage(text)
                 }
             }
         }
-    ) { inner ->
+    ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(inner)
-                .imePadding()
-                .navigationBarsPadding(),
+                .padding(padding),
             state = listState,
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(12.dp)
+            contentPadding = PaddingValues(8.dp)
         ) {
-            items(messages, key = { it.id }) { m -> MessageBubble(m) }
+            items(messages, key = { it.id }) { m ->
+                ChatBubble(m)
+            }
         }
     }
 }
 
 @Composable
-private fun MessageBubble(m: Message) {
-    val shape = RoundedCornerShape(16.dp)
-    val bg = if (m.mine) MaterialTheme.colorScheme.primaryContainer
-    else       MaterialTheme.colorScheme.surfaceVariant
-    val fg = if (m.mine) MaterialTheme.colorScheme.onPrimaryContainer
-    else       MaterialTheme.colorScheme.onSurfaceVariant
+private fun ChatBubble(m: Message) {
+    val bg = if (m.mine) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+    val fg = if (m.mine) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+    val shape = if (m.mine) {
+        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp)
+    } else {
+        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomEnd = 16.dp)
+    }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (m.mine) Arrangement.End else Arrangement.Start
     ) {
         Surface(color = bg, contentColor = fg, shape = shape, tonalElevation = 1.dp) {
-            Text(text = m.text, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
+            Text(
+                text = m.text,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+            )
         }
     }
 }

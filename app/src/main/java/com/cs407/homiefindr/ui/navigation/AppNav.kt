@@ -1,3 +1,4 @@
+// AppNav.kt
 package com.cs407.homiefindr.ui.navigation
 
 import androidx.compose.material.icons.Icons
@@ -17,13 +18,18 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.cs407.homiefindr.ui.screen.*
+import com.google.firebase.auth.FirebaseAuth   // ★ 新增
 
 sealed class Route(val route: String) {
+    data object Login : Route("login")
     data object Home : Route("home")
     data object People : Route("people")
     data object Messages : Route("messages")
     data object Chat : Route("chat/{chatId}")
+
     data object Profile : Route("profile")
+
+    data object OtherProfile : Route("OthersProfileScreen")
 }
 
 data class BottomItem(val route: String, val label: String, val icon: ImageVector)
@@ -39,12 +45,12 @@ fun AppRoot() {
     val nav = rememberNavController()
     val backEntry by nav.currentBackStackEntryAsState()
     val route = backEntry?.destination?.route ?: ""
-    val showBottomBar = !route.startsWith("chat")
+
+    val showBottomBar =
+        route.isNotEmpty() && !route.startsWith("chat") && route != Route.Login.route
 
     Scaffold(
-        bottomBar = {
-            if (showBottomBar) BottomBar(nav)
-        }
+        bottomBar = { if (showBottomBar) BottomBar(nav) }
     ) { padding ->
         NavGraph(nav, paddingValues = padding)
     }
@@ -54,11 +60,21 @@ fun AppRoot() {
 private fun BottomBar(nav: NavHostController) {
     val entry by nav.currentBackStackEntryAsState()
     val current = entry?.destination?.route
+
     NavigationBar {
         bottomItems.forEach { item ->
             NavigationBarItem(
                 selected = current?.startsWith(item.route) == true,
                 onClick = {
+
+                    if (item.route == Route.Profile.route) {
+                        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+                        if (uid.isNotBlank()) {
+                            nav.navigate("profile/$uid")   // ★ 加 uid
+                            return@NavigationBarItem
+                        }
+                    }
+
                     nav.navigate(item.route) {
                         popUpTo(nav.graph.startDestinationId) { saveState = true }
                         launchSingleTop = true
@@ -73,12 +89,37 @@ private fun BottomBar(nav: NavHostController) {
 }
 
 @Composable
-private fun NavGraph(nav: NavHostController, paddingValues: androidx.compose.foundation.layout.PaddingValues) {
-    NavHost(navController = nav, startDestination = Route.Messages.route) {
-        composable(Route.Home.route) { PlaceholderScreen("Home") }
-        composable(Route.People.route) { PlaceholderScreen("People") }
+private fun NavGraph(
+    nav: NavHostController,
+    paddingValues: androidx.compose.foundation.layout.PaddingValues
+) {
+    NavHost(
+        navController = nav,
+        startDestination = Route.Login.route
+    ) {
+        composable(Route.Login.route) {
+            LoginPage(
+                loginButtonClick = { userState ->
+                    nav.navigate("profile/${userState.uid}") {   // ★
+                        popUpTo(Route.Login.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
+        composable(Route.Home.route) { ApartmentsScreen() }
+        composable(Route.OtherProfile.route) { OthersProfileScreen() }
+        composable(Route.People.route) { PeopleScreen(onClickPerson = { nav.navigate(Route.OtherProfile.route) }) }
         messagesGraph(nav)
-        composable(Route.Profile.route) { ProfileScreen() }
+
+        composable(
+            route = "profile/{uid}",   // ★
+            arguments = listOf(navArgument("uid") { type = NavType.StringType })
+        ) { entry ->
+            val uid = entry.arguments?.getString("uid") ?: ""
+            ProfileScreen(userId = uid)   // ★
+        }
     }
 }
 
