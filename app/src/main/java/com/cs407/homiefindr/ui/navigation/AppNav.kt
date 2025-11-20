@@ -18,6 +18,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.cs407.homiefindr.ui.screen.*
+import com.google.firebase.auth.FirebaseAuth   // ★ 新增
 
 sealed class Route(val route: String) {
     data object Login : Route("login")
@@ -25,9 +26,14 @@ sealed class Route(val route: String) {
     data object People : Route("people")
     data object Messages : Route("messages")
     data object Chat : Route("chat/{chatId}")
+
     data object Profile : Route("profile")
 
     data object OtherProfile : Route("OthersProfileScreen")
+
+    data object AddPerson : Route("AddPostScreen")
+
+    data object AddApartment : Route("AddPostScreen")
 }
 
 data class BottomItem(val route: String, val label: String, val icon: ImageVector)
@@ -43,7 +49,9 @@ fun AppRoot() {
     val nav = rememberNavController()
     val backEntry by nav.currentBackStackEntryAsState()
     val route = backEntry?.destination?.route ?: ""
-    val showBottomBar = route.isNotEmpty() && !route.startsWith("chat") && route != Route.Login.route
+
+    val showBottomBar =
+        route.isNotEmpty() && !route.startsWith("chat") && route != Route.Login.route
 
     Scaffold(
         bottomBar = { if (showBottomBar) BottomBar(nav) }
@@ -56,11 +64,21 @@ fun AppRoot() {
 private fun BottomBar(nav: NavHostController) {
     val entry by nav.currentBackStackEntryAsState()
     val current = entry?.destination?.route
+
     NavigationBar {
         bottomItems.forEach { item ->
             NavigationBarItem(
                 selected = current?.startsWith(item.route) == true,
                 onClick = {
+
+                    if (item.route == Route.Profile.route) {
+                        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+                        if (uid.isNotBlank()) {
+                            nav.navigate("profile/$uid")   // ★ 加 uid
+                            return@NavigationBarItem
+                        }
+                    }
+
                     nav.navigate(item.route) {
                         popUpTo(nav.graph.startDestinationId) { saveState = true }
                         launchSingleTop = true
@@ -81,12 +99,12 @@ private fun NavGraph(
 ) {
     NavHost(
         navController = nav,
-        startDestination = Route.Login.route // always Login on app launch
+        startDestination = Route.Login.route
     ) {
         composable(Route.Login.route) {
             LoginPage(
-                loginButtonClick = { _ ->
-                    nav.navigate(Route.Messages.route) {
+                loginButtonClick = { userState ->
+                    nav.navigate("profile/${userState.uid}") {   // ★
                         popUpTo(Route.Login.route) { inclusive = true }
                         launchSingleTop = true
                     }
@@ -94,11 +112,34 @@ private fun NavGraph(
             )
         }
 
-        composable(Route.Home.route) { ApartmentsScreen() }
+        composable(Route.Home.route) { ApartmentsScreen( onClickAdd = { nav.navigate(Route.AddApartment.route)}) }
         composable(Route.OtherProfile.route) { OthersProfileScreen() }
-        composable(Route.People.route) { PeopleScreen( onClickPerson = { nav.navigate(Route.OtherProfile.route) }) }
+        composable(Route.AddPerson.route) { AddPostScreen(isPeople = true, clickBack = { nav.navigate(Route.People.route) }) }
+        composable(Route.AddApartment.route) { AddPostScreen(isPeople = false, clickBack = { nav.navigate(Route.Home.route) }) }
+        composable(Route.People.route) { PeopleScreen(onClickPerson = { nav.navigate(Route.OtherProfile.route) }, onClickAdd = { nav.navigate(Route.AddPerson.route)}) }
         messagesGraph(nav)
-        composable(Route.Profile.route) { ProfileScreen() } // no logout yet
+
+        composable(
+            route = "profile/{uid}",
+            arguments = listOf(navArgument("uid") { type = NavType.StringType })
+        ) { entry ->
+            val uid = entry.arguments?.getString("uid") ?: ""
+
+            ProfileScreen(
+                userId = uid,
+                onDeleteAndLogout = {
+                    // 1. Sign out from Firebase
+                    FirebaseAuth.getInstance().signOut()
+
+                    // 2. Go back to Login and clear back stack
+                    nav.navigate(Route.Login.route) {
+                        popUpTo(nav.graph.startDestinationId) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
     }
 }
 
