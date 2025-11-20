@@ -1,11 +1,9 @@
 package com.cs407.homiefindr.data.auth
 
-import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.auth
 import com.google.firebase.auth.userProfileChangeRequest
-
-
+import com.google.firebase.firestore.FirebaseFirestore
+import com.cs407.homiefindr.data.model.UserProfile
 
 enum class EmailResult {
     Valid,
@@ -14,16 +12,13 @@ enum class EmailResult {
 }
 
 fun checkEmail(email: String): EmailResult {
-    if (email.isEmpty()){
-        //TODO handle the case when email is empty
+    if (email.isEmpty()) {
         return EmailResult.Empty
     }
-
 
     val pattern = Regex("^[\\w.]+@([a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}$")
     return if (pattern.matches(email)) EmailResult.Valid else EmailResult.Invalid
 }
-
 
 enum class PasswordResult {
     Valid,
@@ -33,16 +28,9 @@ enum class PasswordResult {
 }
 
 fun checkPassword(password: String): PasswordResult {
-    // 1. password should contain at least one uppercase letter, lowercase letter, one digit
-    // 2. minimum length: 5
-    if (password.isEmpty()) {
-        //TODO when password is empty
-        return PasswordResult.Empty
-    }
-    if (password.length < 6) {
-        //TODO when password is short
-        return PasswordResult.Short
-    }
+    if (password.isEmpty()) return PasswordResult.Empty
+    if (password.length < 6) return PasswordResult.Short
+
     val hasDigit = Regex("\\d").containsMatchIn(password)
     val hasLower = Regex("[a-z]").containsMatchIn(password)
     val hasUpper = Regex("[A-Z]").containsMatchIn(password)
@@ -52,9 +40,7 @@ fun checkPassword(password: String): PasswordResult {
     } else {
         PasswordResult.Invalid
     }
-
 }
-
 
 fun signIn(
     email: String,
@@ -62,19 +48,17 @@ fun signIn(
     onOk: () -> Unit,
     onErr: (String) -> Unit
 ) {
-    val auth: FirebaseAuth = Firebase.auth
+    val auth: FirebaseAuth = FirebaseAuth.getInstance()
     auth.signInWithEmailAndPassword(email, password)
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
-
                 onOk()
             } else {
-
+                // if sign-in fails, create account
                 createAccount(email, password, onOk, onErr)
             }
         }
 }
-
 
 fun createAccount(
     email: String,
@@ -82,21 +66,44 @@ fun createAccount(
     onOk: () -> Unit,
     onErr: (String) -> Unit
 ) {
-    val auth: FirebaseAuth = Firebase.auth
+    val auth: FirebaseAuth = FirebaseAuth.getInstance()
     auth.createUserWithEmailAndPassword(email, password)
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                // 注册成功
-                onOk()
+                val user = auth.currentUser
+                val uid = user?.uid ?: run {
+                    onErr("User ID missing")
+                    return@addOnCompleteListener
+                }
+
+                val profile = UserProfile(
+                    uid = uid,
+                    name = user.displayName ?: "",
+                    email = email
+                )
+
+                val db = FirebaseFirestore.getInstance()
+                db.collection("users")
+                    .document(uid)
+                    .set(profile)
+                    .addOnSuccessListener { onOk() }
+                    .addOnFailureListener { e ->
+                        onErr(e.message ?: "Failed to save user profile")
+                    }
             } else {
                 onErr(task.exception?.message ?: "Authentication failed")
             }
         }
 }
 
+fun updateName(
+    name: String,
+    onOk: () -> Unit = {},
+    onErr: (String) -> Unit = {}
+) {
+    val auth = FirebaseAuth.getInstance()
+    val user = auth.currentUser ?: return onErr("No signed-in user")
 
-fun updateName(name: String, onOk: () -> Unit = {}, onErr: (String) -> Unit = {}) {
-    val user = Firebase.auth.currentUser ?: return onErr("No signed-in user")
     val req = userProfileChangeRequest { displayName = name }
     user.updateProfile(req)
         .addOnSuccessListener { onOk() }

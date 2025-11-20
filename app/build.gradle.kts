@@ -56,8 +56,13 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.6.0")
 
     // Firebase Auth (BoM controls versions)
+    // Firebase BoM (keeps all Firebase versions in sync)
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
-    implementation("com.google.firebase:firebase-auth")
+
+    // Auth + Firestore + Storage (use KTX)
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
 
 
     testImplementation(libs.junit)
