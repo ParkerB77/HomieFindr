@@ -59,6 +59,8 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore-ktx")
+    // Add the dependency for the Cloud Storage library
+    implementation("com.google.firebase:firebase-storage")
 
 
     testImplementation(libs.junit)

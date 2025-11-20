@@ -34,7 +34,8 @@ data class ProfileUiState(
 
 @Composable
 fun ProfileScreen(
-    userId: String        // 从导航传进来的 uid
+    userId: String,        // 从导航传进来的 uid
+    onDeleteAndLogout: () -> Unit
 ) {
     var state by remember { mutableStateOf(ProfileUiState()) }
     var editing by remember { mutableStateOf(false) }
@@ -65,6 +66,7 @@ fun ProfileScreen(
     }
 
     // ---------- 点击 Done 时：把当前资料写回 Firestore ----------
+
     fun saveProfileToFirestore() {
         if (userId.isBlank()) return
 
@@ -78,6 +80,24 @@ fun ProfileScreen(
             .document(userId)
             .set(data)
     }
+
+    // ---------- 删除 profile 文档 ----------
+    fun deleteProfileFromFirestore() {
+        if (userId.isBlank()) return
+
+        db.collection("profiles")
+            .document(userId)
+            .delete()
+            .addOnSuccessListener {
+                // when profile is really gone, trigger logout + nav
+                onDeleteAndLogout()
+            }
+            .addOnFailureListener { e ->
+                // optional: show error somewhere
+                println("Delete failed: ${e.message}")
+            }
+    }
+
 
     // ---------- 选头像 ----------
     val pickAvatarLauncher = rememberLauncherForActivityResult(
@@ -167,6 +187,17 @@ fun ProfileScreen(
                 }
             ) {
                 Text(if (editing) "Done" else "Edit")
+            }
+
+            // ★ Red delete profile button
+            Button(
+                onClick = { deleteProfileFromFirestore() },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                )
+            ) {
+                Text("Delete Profile")
             }
 
             // TODO: 这里以后可以加 Sign-out 按钮
