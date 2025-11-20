@@ -28,6 +28,10 @@ sealed class Route(val route: String) {
     data object Profile : Route("profile")
 
     data object OtherProfile : Route("OthersProfileScreen")
+
+    data object AddPerson: Route("AddPostScreen")
+
+    data object AddApartment: Route("AddPostScreen")
 }
 
 data class BottomItem(val route: String, val label: String, val icon: ImageVector)
@@ -94,9 +98,11 @@ private fun NavGraph(
             )
         }
 
-        composable(Route.Home.route) { ApartmentsScreen() }
+        composable(Route.Home.route) { ApartmentsScreen(onClickAdd = {nav.navigate(Route.AddApartment.route)}) }
         composable(Route.OtherProfile.route) { OthersProfileScreen() }
-        composable(Route.People.route) { PeopleScreen( onClickPerson = { nav.navigate(Route.OtherProfile.route) }) }
+        composable(Route.AddPerson.route) { AddPostScreen(isPeople = true, clickBack = { nav.navigate(Route.People.route) }) }
+        composable(Route.AddApartment.route) { AddPostScreen(isPeople = false, clickBack = { nav.navigate(Route.Home.route) }) }
+        composable(Route.People.route) { PeopleScreen( onClickPerson = { nav.navigate(Route.OtherProfile.route) }, onClickAdd = {nav.navigate(Route.AddPerson.route)}) }
         messagesGraph(nav)
         composable(Route.Profile.route) { ProfileScreen() } // no logout yet
     }
