@@ -54,6 +54,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation("androidx.compose.material:material-icons-extended")
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
 
     // Firebase Auth (BoM controls versions)
     // Firebase BoM (keeps all Firebase versions in sync)

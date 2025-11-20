@@ -21,24 +21,50 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 
-data class ProfileUiState(
-    val name: String = "Jason",
-    val bio: String = "",
-    val avatarUri: Uri? = null
-)
+//data class ProfileUiState(
+//    val name: String = "Jason",
+//    val bio: String = "",
+//    val avatarUri: Uri? = null
+//)
 
 @Composable
-fun ProfileScreen() {
-    var state by remember { mutableStateOf(ProfileUiState()) }
+fun ProfileScreen(
+    profileViewModel: ProfileViewModel = viewModel()
+) {
+    val state by profileViewModel.uiState.collectAsState()
+
     var editing by remember { mutableStateOf(false) }
 
     // 系统相册选择器（Android 13+ 无需读存储权限；更低版本也能回落工作）
     val pickAvatar = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
-        if (uri != null) state = state.copy(avatarUri = uri)
+        if (uri != null) {
+            profileViewModel.updateAvatar(uri)
+        }
+    }
+
+    if (state.isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        return // stops updating ui when loading
+    }
+
+    if (state.errorMessage != null) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(text = "Error: ${state.errorMessage}")
+        }
+        return // stops updating ui when there's an error
     }
 
     Column(
@@ -94,7 +120,9 @@ fun ProfileScreen() {
         if (editing) {
             OutlinedTextField(
                 value = state.name,
-                onValueChange = { state = state.copy(name = it) },
+                onValueChange = {
+                    profileViewModel.onNameChange(it)
+                },
                 label = { Text("Name") }
             )
         } else {
@@ -104,10 +132,18 @@ fun ProfileScreen() {
         Spacer(Modifier.height(16.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(onClick = { editing = !editing }) {
-                Text(if (editing) "Done" else "Edit")
+            OutlinedButton(onClick = {
+                if (editing) {
+                profileViewModel.saveProfile()
+                }
+                editing = !editing
+            }) {
+
+                Text(if (editing) "Save" else "Edit")
             }
-            Button(onClick = { /* TODO: Sign-out */ }) {
+            Button(onClick = {
+                // TODO: profileViewModel.signOut()
+            }) {
                 Text("Sign-out")
             }
         }
@@ -129,7 +165,9 @@ fun ProfileScreen() {
         if (editing) {
             OutlinedTextField(
                 value = state.bio,
-                onValueChange = { state = state.copy(bio = it) },
+                onValueChange = {
+                    profileViewModel.onBioChange(it)
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 120.dp),
