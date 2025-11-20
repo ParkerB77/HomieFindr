@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun ApartmentsScreen() {
+fun ApartmentsScreen( onClickAdd: () -> Unit) {
 
     val ids = intArrayOf(0, 1, 2, 3, 4)
     var search: String by remember {mutableStateOf("")}
@@ -74,7 +74,7 @@ fun ApartmentsScreen() {
 
         //The add button
         IconButton(
-            onClick = {},
+            onClick = onClickAdd,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(bottom = 110.dp)
