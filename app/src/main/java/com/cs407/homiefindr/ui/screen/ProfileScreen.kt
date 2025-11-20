@@ -4,11 +4,10 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Favorite
@@ -22,25 +21,74 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 
+// ★ KTX 版本 Firestore 写法
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 data class ProfileUiState(
-    val name: String = "Jason",
+    val name: String = "Name",
     val bio: String = "",
     val avatarUri: Uri? = null
 )
 
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(
+    userId: String        // 从导航传进来的 uid
+) {
     var state by remember { mutableStateOf(ProfileUiState()) }
     var editing by remember { mutableStateOf(false) }
 
-    // 系统相册选择器（Android 13+ 无需读存储权限；更低版本也能回落工作）
-    val pickAvatar = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri ->
-        if (uri != null) state = state.copy(avatarUri = uri)
+    // ★ KTX：直接用 Firebase.firestore
+    val db = remember { Firebase.firestore }
+
+    // ---------- 第一次进入，用 userId 从 Firestore 读 profile ----------
+    LaunchedEffect(userId) {
+        if (userId.isNotBlank()) {
+            db.collection("profiles")
+                .document(userId)
+                .get()
+                .addOnSuccessListener { doc: DocumentSnapshot ->
+                    if (doc.exists()) {
+                        val name = doc.getString("name") ?: "Jason"
+                        val bio = doc.getString("bio") ?: ""
+                        val avatarUrl = doc.getString("avatarUrl")
+
+                        state = state.copy(
+                            name = name,
+                            bio = bio,
+                            avatarUri = avatarUrl?.let { Uri.parse(it) }
+                        )
+                    }
+                }
+        }
     }
 
+    // ---------- 点击 Done 时：把当前资料写回 Firestore ----------
+    fun saveProfileToFirestore() {
+        if (userId.isBlank()) return
+
+        val data = hashMapOf(
+            "name" to state.name,
+            "bio" to state.bio,
+            "avatarUrl" to state.avatarUri?.toString()
+        )
+
+        db.collection("profiles")
+            .document(userId)
+            .set(data)
+    }
+
+    // ---------- 选头像 ----------
+    val pickAvatarLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            state = state.copy(avatarUri = uri)
+        }
+    }
+
+    // --------------------- Layout ---------------------
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -48,11 +96,11 @@ fun ProfileScreen() {
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(Modifier.height(24.dp))
-        // for user to go into their favorite
+        Spacer(modifier = Modifier.height(24.dp))
+
         FloatingActionButton(
             onClick = {
-                // TODO: go to FavoriteScreen
+                // TODO: 之后可以跳转到 FavoriteScreen
             },
             modifier = Modifier.align(Alignment.End)
         ) {
@@ -70,8 +118,10 @@ fun ProfileScreen() {
                 )
             }
         }
-        Spacer(Modifier.height(24.dp))
-        // 头像（优先显示选择的 Uri）
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // 头像
         if (state.avatarUri != null) {
             AsyncImage(
                 model = state.avatarUri,
@@ -83,14 +133,14 @@ fun ProfileScreen() {
         } else {
             Icon(
                 imageVector = Icons.Default.AccountCircle,
-                contentDescription = "Avatar",
+                contentDescription = "Default Avatar",
                 modifier = Modifier.size(96.dp)
             )
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // 名字：编辑/只读两种状态
+        // 名字
         if (editing) {
             OutlinedTextField(
                 value = state.name,
@@ -98,34 +148,47 @@ fun ProfileScreen() {
                 label = { Text("Name") }
             )
         } else {
-            Text(state.name, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = state.name,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(onClick = { editing = !editing }) {
+            OutlinedButton(
+                onClick = {
+                    if (editing) {
+                        saveProfileToFirestore()
+                    }
+                    editing = !editing
+                }
+            ) {
                 Text(if (editing) "Done" else "Edit")
             }
-            Button(onClick = { /* TODO: Sign-out */ }) {
-                Text("Sign-out")
-            }
+
+            // TODO: 这里以后可以加 Sign-out 按钮
         }
 
         if (editing) {
-            Spacer(Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             OutlinedButton(
                 onClick = {
-                    pickAvatar.launch(
+                    pickAvatarLauncher.launch(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                     )
                 }
-            ) { Text("Change Avatar") }
+            ) {
+                Text("Change Avatar")
+            }
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Text("Description:", fontWeight = FontWeight.SemiBold)
+
         if (editing) {
             OutlinedTextField(
                 value = state.bio,
