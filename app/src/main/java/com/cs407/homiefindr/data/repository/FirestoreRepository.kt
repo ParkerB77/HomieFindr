@@ -8,6 +8,10 @@ import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
+import com.cs407.homiefindr.data.model.ApartmentPost
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.Query
+import com.google.firebase.ktx.Firebase
 
 class FirestoreRepository {
 
@@ -16,6 +20,51 @@ class FirestoreRepository {
     private val storage = FirebaseStorage.getInstance().reference
 
     // ---------- USERS ----------
+    private val postsCollection = db.collection("apartmentPosts")
+
+    // Listen for all posts (updates in real time)
+    fun observeApartmentPosts(
+        onSuccess: (List<ApartmentPost>) -> Unit,
+        onError: (Throwable) -> Unit
+    ) {
+        postsCollection
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    onError(e)
+                    return@addSnapshotListener
+                }
+                val list = snapshot?.toObjects(ApartmentPost::class.java) ?: emptyList()
+                onSuccess(list)
+            }
+    }
+
+    // Add a new post
+    fun addApartmentPost(
+        title: String,
+        content: String,
+        price: Int,
+        leasePeriod: String,
+        onResult: (Boolean, Throwable?) -> Unit
+    ) {
+        val uid = Firebase.auth.currentUser?.uid
+            ?: return onResult(false, IllegalStateException("User not logged in"))
+
+        val docRef = postsCollection.document()
+        val post = ApartmentPost(
+            id = docRef.id,
+            title = title,
+            content = content,
+            price = price,
+            leasePeriod = leasePeriod,
+            ownerId = uid,
+            createdAt = System.currentTimeMillis()
+        )
+
+        docRef.set(post)
+            .addOnSuccessListener { onResult(true, null) }
+            .addOnFailureListener { e -> onResult(false, e) }
+    }
 
     fun createUserProfile(name: String, email: String, onDone: (Boolean) -> Unit) {
         val uid = auth.currentUser?.uid ?: run {

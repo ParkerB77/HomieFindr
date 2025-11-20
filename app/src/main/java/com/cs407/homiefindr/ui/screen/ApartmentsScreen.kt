@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Favorite
@@ -28,37 +29,51 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.cs407.homiefindr.data.model.ApartmentPost
 
 @Composable
-fun ApartmentsScreen( onClickAdd: () -> Unit) {
+fun ApartmentsScreen(
+    onClickAdd: () -> Unit,
+    vm: ApartmentsViewModel = viewModel()
+) {
+    val state = vm.uiState
+    val posts = state.posts
 
-    val ids = intArrayOf(0, 1, 2, 3, 4)
-    var search: String by remember {mutableStateOf("")}
+    var search: String by remember { mutableStateOf("") }
 
-    Box (
+    // simple local search filter
+    val filteredPosts =
+        if (search.isBlank()) posts
+        else posts.filter {
+            it.title.contains(search, ignoreCase = true) ||
+                    it.content.contains(search, ignoreCase = true) ||
+                    it.leasePeriod.contains(search, ignoreCase = true)
+        }
+
+    Box(
         modifier = Modifier.fillMaxSize()
-    ){
+    ) {
 
-        // The top row with the search bar
+        // Top row with search bar + filter button (same as you had)
         Row(
-            modifier = Modifier.align(Alignment.TopCenter)
-//                .background(color = Color.Gray)
-                .fillMaxWidth().padding(top = 30.dp),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .padding(top = 30.dp, start = 16.dp, end = 16.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-//            var expanded by remember { mutableStateOf(false) }
-            //  Search bar
-
             OutlinedTextField(
                 value = search,
                 onValueChange = { search = it },
-                label = { Text("search") }
+                label = { Text("search") },
+                modifier = Modifier.weight(1f)
             )
 
-            //Filter button
             IconButton(
-                onClick = {/* filter posts */ }
+                onClick = { /* TODO: filter posts more smartly */ }
             ) {
                 Icon(
                     imageVector = Icons.Default.FilterAlt,
@@ -67,15 +82,12 @@ fun ApartmentsScreen( onClickAdd: () -> Unit) {
             }
         }
 
-
-        //The add button
+        // The + add button (bottom-right, same position)
         IconButton(
             onClick = onClickAdd,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(bottom = 110.dp)
-//                .background(color = Color.Gray)
-
+                .padding(bottom = 110.dp, end = 16.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
@@ -84,79 +96,73 @@ fun ApartmentsScreen( onClickAdd: () -> Unit) {
             )
         }
 
-
-        LazyColumn (
-            modifier = Modifier.padding(top = 100.dp, bottom = 100.dp)
-        ){
-            ids.forEach { id ->
-                item {
-                    //if the apartment is saved (get from the data) (placeholder)
-                    var isSaved by remember { mutableStateOf(true) }
-
-                    ElevatedCard (
-                        modifier = Modifier
-                            .fillMaxWidth()
-
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            Arrangement.SpaceBetween
-
-                        ) {
-                            //Apartment picture
-                            Box (
-                                modifier = Modifier.size(90.dp)
-                            ){
-                                //if there isn't an apartment picture have the default icon
-                                Icon(
-                                    imageVector = Icons.Default.Home,
-                                    contentDescription = "Apartment",
-                                    modifier = Modifier.size(90.dp)
-                                )
-
-                                // Save button
-                                IconButton(
-                                    onClick = { /* TODO: change between saved and not saved */},
-                                    modifier = Modifier.align(Alignment.TopEnd)
-                                ) {
-                                    if (isSaved) {
-                                        Icon (
-                                            imageVector = Icons.Default.Favorite,
-                                            contentDescription = "Apartment",
-                                            modifier = Modifier.align(Alignment.TopEnd)
-                                        )
-                                    } else {
-                                        Icon (
-                                            imageVector = Icons.Default.FavoriteBorder,
-                                            contentDescription = "Apartment",
-                                            modifier = Modifier.align(Alignment.TopEnd)
-                                        )
-                                    }
-
-                                }
-
-                            }
-
-                            // Appartment information
-                            Column (
-                                modifier = Modifier.fillMaxWidth()
-                            ){
-                                Text(text = "Placeholder name")
-                                Text("11/1/2026 to 11/1/2027")
-                                Text("$800")
-                                Text("no pets, in-unit laundry, 2B1B")
-                            }
-
-                        }
-
-
-
-                    }
-
-                }
+        // List of posts (replaces hard-coded ids, keeps your card layout style)
+        LazyColumn(
+            modifier = Modifier
+                .padding(top = 100.dp, bottom = 100.dp, start = 16.dp, end = 16.dp)
+        ) {
+            items(filteredPosts) { post ->
+                ApartmentCard(post = post)
             }
         }
     }
+}
 
+@Composable
+private fun ApartmentCard(post: ApartmentPost) {
+    var isSaved by remember { mutableStateOf(true) }
 
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Apartment picture + save button (same structure as before)
+            Box(
+                modifier = Modifier.size(90.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Home,
+                    contentDescription = "Apartment",
+                    modifier = Modifier.size(90.dp)
+                )
+
+                IconButton(
+                    onClick = {
+                        // TODO: toggle save in database if you want
+                        isSaved = !isSaved
+                    },
+                    modifier = Modifier.align(Alignment.TopEnd)
+                ) {
+                    if (isSaved) {
+                        Icon(
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = "Saved"
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.FavoriteBorder,
+                            contentDescription = "Not saved"
+                        )
+                    }
+                }
+            }
+
+            // Apartment information (using real data now)
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(text = post.title, fontSize = 18.sp)
+                Text(text = post.leasePeriod)
+                Text(text = "$${post.price}")
+                Text(text = post.content)
+            }
+        }
+    }
 }

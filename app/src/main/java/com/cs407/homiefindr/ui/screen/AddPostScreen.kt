@@ -29,35 +29,41 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
-fun AddPostScreen(clickBack: () -> Unit) {
+fun AddPostScreen(
+    isPeople: Boolean,
+    clickBack: () -> Unit,
+    vm: AddPostViewModel = viewModel()
+) {
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
     var leasePeriod by remember { mutableStateOf("") }
-    //TODO: images
-
 
     val context = LocalContext.current
 
-    IconButton(
-        onClick = clickBack
-    ) {
-        Icon(
-            imageVector = Icons.Default.ArrowBackIosNew,
-            contentDescription = "Back Button"
-        )
-    }
-
     Box(
-        contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
+        // Back button in the top-left corner
+        IconButton(
+            onClick = clickBack,
+            modifier = Modifier.align(Alignment.TopStart)
+        ) {
+            Icon(
+                imageVector = Icons.Default.ArrowBackIosNew,
+                contentDescription = "Back Button"
+            )
+        }
+
+        // Card with the form
         ElevatedCard(
             modifier = Modifier
+                .align(Alignment.Center)
                 .fillMaxWidth()
                 .wrapContentHeight(),
             shape = MaterialTheme.shapes.extraLarge,
@@ -72,87 +78,99 @@ fun AddPostScreen(clickBack: () -> Unit) {
                     .padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                //TODO: add images
-
                 // Title input
-                //if you're adding a person then you add the profile information
-                Text("Title: ")
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text( "Post title") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                if (!isPeople) {
+                    Text("Title:")
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        label = { Text("Post title") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    // TODO: if adding a person, get their name from profile info
+                }
 
-
-                // content input
-                Text("Apartment information: ")
-
+                // Content input
+                Text(if (isPeople) "Bio information:" else "Apartment information:")
                 OutlinedTextField(
                     value = content,
                     onValueChange = { content = it },
-                    label = { Text( "Post content") },
+                    label = { Text("Post content") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // price input
-                Text("Upper limit for price: ")
+                // Price input
+                Text("Upper limit for price:")
                 OutlinedTextField(
                     value = price,
-                    onValueChange = { input ->
-                        if (input.all { it.isDigit() }) { price = input }
-                                    },
-                    label = { Text( "Post price") },
+                    onValueChange = { price = it },
+                    label = { Text("Post price") },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-                    )
-
-                // leasePeriod input
-                Text("Lease period")
+                // Lease period input
+                Text("Lease period:")
                 OutlinedTextField(
                     value = leasePeriod,
                     onValueChange = { leasePeriod = it },
-                    label = { Text( "Post Lease Period") },
-
-                    )
-
+                    label = { Text("Post lease period") },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    //cancel button
-                    OutlinedButton (
+                    // Cancel button
+                    OutlinedButton(
                         onClick = clickBack,
-                        enabled = true
+                        enabled = !vm.isSaving
                     ) {
-                        Text( "Cancel")
+                        Text("Cancel")
                     }
 
-                    //Post button
+                    // Post button
                     Button(
                         onClick = {
-                            if (title.isBlank() || content.isBlank() || price.isBlank() || leasePeriod.isBlank()) {
-                                // Display an error message if fields are empty
+                            if (title.isBlank() || content.isBlank() ||
+                                price.isBlank() || leasePeriod.isBlank()
+                            ) {
                                 Toast.makeText(
                                     context,
                                     "Please fill all fields",
                                     Toast.LENGTH_SHORT
                                 ).show()
+                            } else if (!isPeople) {
+                                val priceInt = price.toIntOrNull() ?: 0
+                                vm.saveApartmentPost(
+                                    title = title,
+                                    content = content,
+                                    price = priceInt,
+                                    leasePeriod = leasePeriod
+                                ) { ok ->
+                                    if (ok) {
+                                        clickBack()
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            vm.errorMessage ?: "Failed to post",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                }
                             } else {
-                                // Post to database
-                                // TODO: update database
+                                // TODO: implement posting logic for "people" posts
                                 clickBack()
                             }
                         },
-                        enabled = true
+                        enabled = !vm.isSaving
                     ) {
-                        Text("Post")
+                        Text(if (vm.isSaving) "Posting..." else "Post")
                     }
-
                 }
-                }
+            }
         }
     }
-
 }
