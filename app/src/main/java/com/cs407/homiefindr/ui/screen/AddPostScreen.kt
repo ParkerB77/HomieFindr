@@ -33,7 +33,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun AddPostScreen(
-    isPeople: Boolean,
     clickBack: () -> Unit,
     vm: AddPostViewModel = viewModel()
 ) {
@@ -79,20 +78,16 @@ fun AddPostScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // Title input
-                if (!isPeople) {
-                    Text("Title:")
-                    OutlinedTextField(
-                        value = title,
-                        onValueChange = { title = it },
-                        label = { Text("Post title") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                } else {
-                    // TODO: if adding a person, get their name from profile info
-                }
+                Text("Title:")
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Post title") },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 // Content input
-                Text(if (isPeople) "Bio information:" else "Apartment information:")
+                Text( "Apartment information:")
                 OutlinedTextField(
                     value = content,
                     onValueChange = { content = it },
@@ -142,7 +137,7 @@ fun AddPostScreen(
                                     "Please fill all fields",
                                     Toast.LENGTH_SHORT
                                 ).show()
-                            } else if (!isPeople) {
+                            } else {
                                 val priceInt = price.toIntOrNull() ?: 0
                                 vm.saveApartmentPost(
                                     title = title,
@@ -160,9 +155,6 @@ fun AddPostScreen(
                                         ).show()
                                     }
                                 }
-                            } else {
-                                // TODO: implement posting logic for "people" posts
-                                clickBack()
                             }
                         },
                         enabled = !vm.isSaving
