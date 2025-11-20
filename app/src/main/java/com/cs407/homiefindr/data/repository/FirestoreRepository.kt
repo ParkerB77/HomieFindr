@@ -47,8 +47,12 @@ class FirestoreRepository {
         leasePeriod: String,
         onResult: (Boolean, Throwable?) -> Unit
     ) {
-        val uid = Firebase.auth.currentUser?.uid
+
+        val user = Firebase.auth.currentUser
             ?: return onResult(false, IllegalStateException("User not logged in"))
+
+        val uid = user.uid
+        val email = user.email.orEmpty()   // safe: user is not null now
 
         val docRef = postsCollection.document()
         val post = ApartmentPost(
@@ -58,6 +62,7 @@ class FirestoreRepository {
             price = price,
             leasePeriod = leasePeriod,
             ownerId = uid,
+            ownerEmail = email,
             createdAt = System.currentTimeMillis()
         )
 
@@ -185,4 +190,5 @@ class FirestoreRepository {
             }
             .addOnFailureListener { onResult(emptyList()) }
     }
+
 }
