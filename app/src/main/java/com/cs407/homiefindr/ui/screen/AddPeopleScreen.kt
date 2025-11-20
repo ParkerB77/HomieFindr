@@ -31,7 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun AddPostScreen(clickBack: () -> Unit) {
+fun AddPeopleScreen(clickBack: () -> Unit) {
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
@@ -75,8 +75,7 @@ fun AddPostScreen(clickBack: () -> Unit) {
                 //TODO: add images
 
                 // Title input
-                //if you're adding a person then you add the profile information
-                Text("Title: ")
+                Text("Name: ")
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -86,8 +85,7 @@ fun AddPostScreen(clickBack: () -> Unit) {
 
 
                 // content input
-                Text("Apartment information: ")
-
+                Text("Bio information: ")
                 OutlinedTextField(
                     value = content,
                     onValueChange = { content = it },
@@ -101,7 +99,7 @@ fun AddPostScreen(clickBack: () -> Unit) {
                     value = price,
                     onValueChange = { input ->
                         if (input.all { it.isDigit() }) { price = input }
-                                    },
+                    },
                     label = { Text( "Post price") },
 
                     )
@@ -151,7 +149,10 @@ fun AddPostScreen(clickBack: () -> Unit) {
                     }
 
                 }
-                }
+
+
+
+            }
         }
     }
 

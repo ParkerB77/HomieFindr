@@ -1,6 +1,7 @@
 // AppNav.kt
 package com.cs407.homiefindr.ui.navigation
 
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Chat
@@ -20,6 +21,7 @@ import androidx.navigation.navArgument
 import com.cs407.homiefindr.ui.screen.*
 import com.google.firebase.auth.FirebaseAuth   // ★ 新增
 
+
 sealed class Route(val route: String) {
     data object Login : Route("login")
     data object Home : Route("home")
@@ -27,10 +29,19 @@ sealed class Route(val route: String) {
     data object Messages : Route("messages")
     data object Chat : Route("chat/{chatId}")
 
+
     data object Profile : Route("profile")
 
+
     data object OtherProfile : Route("OthersProfileScreen")
+
+
+    data object AddPerson : Route("AddPeopleScreen")
+
+
+    data object AddApartment : Route("AddPostScreen")
 }
+
 
 data class BottomItem(val route: String, val label: String, val icon: ImageVector)
 private val bottomItems = listOf(
@@ -40,14 +51,17 @@ private val bottomItems = listOf(
     BottomItem(Route.Profile.route, "Profile", Icons.Filled.AccountCircle),
 )
 
+
 @Composable
 fun AppRoot() {
     val nav = rememberNavController()
     val backEntry by nav.currentBackStackEntryAsState()
     val route = backEntry?.destination?.route ?: ""
 
+
     val showBottomBar =
         route.isNotEmpty() && !route.startsWith("chat") && route != Route.Login.route
+
 
     Scaffold(
         bottomBar = { if (showBottomBar) BottomBar(nav) }
@@ -56,16 +70,19 @@ fun AppRoot() {
     }
 }
 
+
 @Composable
 private fun BottomBar(nav: NavHostController) {
     val entry by nav.currentBackStackEntryAsState()
     val current = entry?.destination?.route
+
 
     NavigationBar {
         bottomItems.forEach { item ->
             NavigationBarItem(
                 selected = current?.startsWith(item.route) == true,
                 onClick = {
+
 
                     if (item.route == Route.Profile.route) {
                         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
@@ -74,6 +91,7 @@ private fun BottomBar(nav: NavHostController) {
                             return@NavigationBarItem
                         }
                     }
+
 
                     nav.navigate(item.route) {
                         popUpTo(nav.graph.startDestinationId) { saveState = true }
@@ -87,6 +105,7 @@ private fun BottomBar(nav: NavHostController) {
         }
     }
 }
+
 
 @Composable
 private fun NavGraph(
@@ -108,10 +127,14 @@ private fun NavGraph(
             )
         }
 
-        composable(Route.Home.route) { ApartmentsScreen() }
+
+        composable(Route.Home.route) { ApartmentsScreen( onClickAdd = { nav.navigate(Route.AddApartment.route)}) }
         composable(Route.OtherProfile.route) { OthersProfileScreen() }
-        composable(Route.People.route) { PeopleScreen(onClickPerson = { nav.navigate(Route.OtherProfile.route) }) }
+        composable(Route.AddPerson.route) { AddPeopleScreen( clickBack = { nav.navigate(Route.People.route) }) }
+        composable(Route.AddApartment.route) { AddPostScreen(clickBack = { nav.navigate(Route.Home.route) }) }
+        composable(Route.People.route) { PeopleScreen(onClickPerson = { nav.navigate(Route.OtherProfile.route) }, onClickAdd = { nav.navigate(Route.AddPerson.route)}) }
         messagesGraph(nav)
+
 
         composable(
             route = "profile/{uid}",   // ★
@@ -122,6 +145,7 @@ private fun NavGraph(
         }
     }
 }
+
 
 private fun NavGraphBuilder.messagesGraph(nav: NavHostController) {
     composable(Route.Messages.route) {
