@@ -35,12 +35,22 @@ import com.google.firebase.ktx.Firebase
 
 @Composable
 fun ProfileScreen(
-    profileViewModel: ProfileViewModel = viewModel()
+    profileViewModel: ProfileViewModel = viewModel(),
+    onNavigateToLogin: () -> Unit,
 ) {
     val state by profileViewModel.uiState.collectAsState()
 
     var editing by remember { mutableStateOf(false) }
 
+    LaunchedEffect(true) {
+        profileViewModel.events.collect { event ->
+            when (event) {
+                ProfileEvent.NavigateToLogin -> {
+                    onNavigateToLogin()
+                }
+            }
+        }
+    }
 //    // ★ KTX：直接用 Firebase.firestore
 //    val db = remember { Firebase.firestore }
 //
@@ -212,7 +222,7 @@ fun ProfileScreen(
                 Text(if (editing) "Save" else "Edit")
             }
             Button(onClick = {
-                // TODO: profileViewModel.signOut()
+                profileViewModel.signOut()
             }) {
                 Text("Sign-out")
             }

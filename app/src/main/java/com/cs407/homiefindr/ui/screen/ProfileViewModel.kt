@@ -15,7 +15,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import androidx.core.net.toUri
 import com.google.firebase.storage.ktx.storage
+import com.google.firebase.auth.ktx.auth
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
 
+sealed interface ProfileEvent {
+    data object NavigateToLogin : ProfileEvent
+}
 data class ProfileUiState(
     val isLoading: Boolean = true,
     val name: String = "",
@@ -32,7 +39,8 @@ class ProfileViewModel : ViewModel() {
     private val auth = Firebase.auth
     private val firestore = Firebase.firestore
     private val storage = Firebase.storage
-
+    private val _events = MutableSharedFlow<ProfileEvent>()
+    val events = _events.asSharedFlow()
 
     init {
         loadUserProfile()
@@ -134,5 +142,10 @@ class ProfileViewModel : ViewModel() {
             }
         }
     }
-    // TODO: signOut()
+    fun signOut() {
+        viewModelScope.launch {
+            auth.signOut()
+            _events.emit(ProfileEvent.NavigateToLogin)
+        }
+    }
 }

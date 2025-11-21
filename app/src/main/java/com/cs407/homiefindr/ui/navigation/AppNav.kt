@@ -126,17 +126,22 @@ private fun NavGraph(
             val uid = entry.arguments?.getString("uid") ?: ""
 
             ProfileScreen(
-                userId = uid,
-                onDeleteAndLogout = {
-                    // 1. Sign out from Firebase
-                    FirebaseAuth.getInstance().signOut()
-
-                    // 2. Go back to Login and clear back stack
+                onNavigateToLogin = {
                     nav.navigate(Route.Login.route) {
                         popUpTo(nav.graph.startDestinationId) { inclusive = true }
                         launchSingleTop = true
                     }
                 }
+//                onDeleteAndLogout = {
+//                    // 1. Sign out from Firebase
+//                    FirebaseAuth.getInstance().signOut()
+//
+//                    // 2. Go back to Login and clear back stack
+//                    nav.navigate(Route.Login.route) {
+//                        popUpTo(nav.graph.startDestinationId) { inclusive = true }
+//                        launchSingleTop = true
+//                    }
+//                }
             )
         }
 
