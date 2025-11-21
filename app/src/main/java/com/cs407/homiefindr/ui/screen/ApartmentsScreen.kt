@@ -82,6 +82,16 @@ fun ApartmentsScreen(
             }
         }
 
+
+        // List of posts (replaces hard-coded ids, keeps your card layout style)
+        LazyColumn(
+            modifier = Modifier
+                .padding(top = 100.dp, bottom = 100.dp, start = 16.dp, end = 16.dp)
+        ) {
+            items(filteredPosts) { post ->
+                ApartmentCard(post = post)
+            }
+        }
         // The + add button (bottom-right, same position)
         IconButton(
             onClick = onClickAdd,
@@ -96,15 +106,6 @@ fun ApartmentsScreen(
             )
         }
 
-        // List of posts (replaces hard-coded ids, keeps your card layout style)
-        LazyColumn(
-            modifier = Modifier
-                .padding(top = 100.dp, bottom = 100.dp, start = 16.dp, end = 16.dp)
-        ) {
-            items(filteredPosts) { post ->
-                ApartmentCard(post = post)
-            }
-        }
     }
 }
 
