@@ -16,9 +16,6 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Message
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -85,6 +82,16 @@ fun ApartmentsScreen(
             }
         }
 
+
+        // List of posts (replaces hard-coded ids, keeps your card layout style)
+        LazyColumn(
+            modifier = Modifier
+                .padding(top = 100.dp, bottom = 100.dp, start = 16.dp, end = 16.dp)
+        ) {
+            items(filteredPosts) { post ->
+                ApartmentCard(post = post)
+            }
+        }
         // The + add button (bottom-right, same position)
         IconButton(
             onClick = onClickAdd,
@@ -99,129 +106,63 @@ fun ApartmentsScreen(
             )
         }
 
-        // List of posts
-        LazyColumn(
-            modifier = Modifier
-                .padding(top = 100.dp, bottom = 100.dp, start = 16.dp, end = 16.dp)
-        ) {
-            items(filteredPosts) { post ->
-                ApartmentCard(post = post)
-            }
-        }
     }
 }
 
 @Composable
 private fun ApartmentCard(post: ApartmentPost) {
     var isSaved by remember { mutableStateOf(true) }
-    var isLiked by remember { mutableStateOf(false) }
 
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp)
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-
-            // Top row: picture, save button, info (same layout as before)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+            // Apartment picture + save button (same structure as before)
+            Box(
+                modifier = Modifier.size(90.dp)
             ) {
-                // Apartment picture + save button
-                Box(
+                Icon(
+                    imageVector = Icons.Default.Home,
+                    contentDescription = "Apartment",
                     modifier = Modifier.size(90.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Home,
-                        contentDescription = "Apartment",
-                        modifier = Modifier.size(90.dp)
-                    )
+                )
 
-                    IconButton(
-                        onClick = {
-                            // TODO: toggle save in database if you want
-                            isSaved = !isSaved
-                        },
-                        modifier = Modifier.align(Alignment.TopEnd)
-                    ) {
-                        if (isSaved) {
-                            Icon(
-                                imageVector = Icons.Default.Favorite,
-                                contentDescription = "Saved"
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.FavoriteBorder,
-                                contentDescription = "Not saved"
-                            )
-                        }
-                    }
-                }
-
-                // Apartment information (using real data now)
-                Column(
-                    modifier = Modifier.fillMaxWidth()
+                IconButton(
+                    onClick = {
+                        // TODO: toggle save in database if you want
+                        isSaved = !isSaved
+                    },
+                    modifier = Modifier.align(Alignment.TopEnd)
                 ) {
-                    Text(text = post.title, fontSize = 18.sp)
-                    if (post.ownerEmail.isNotBlank()) {
-                        Text(
-                            text = "Posted by ${post.ownerEmail}",
-                            fontSize = 12.sp
+                    if (isSaved) {
+                        Icon(
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = "Saved"
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.FavoriteBorder,
+                            contentDescription = "Not saved"
                         )
                     }
-                    Text(text = post.leasePeriod)
-                    Text(text = "$${post.price}")
-                    Text(text = post.content)
                 }
             }
 
-            // Bottom row: Message, Like, Share
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
+            // Apartment information (using real data now)
+            Column(
+                modifier = Modifier.fillMaxWidth()
             ) {
-                IconButton(
-                    onClick = {
-                        // TODO: open chat / navigate to messages with this owner
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Message,
-                        contentDescription = "Message"
-                    )
-                }
-
-                IconButton(
-                    onClick = {
-                        // simple toggle for now
-                        isLiked = !isLiked
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ThumbUp,
-                        contentDescription = if (isLiked) "Unlike" else "Like"
-                    )
-                }
-
-                IconButton(
-                    onClick = {
-                        // TODO: trigger share sheet with this post info
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = "Share"
-                    )
-                }
+                Text(text = post.title, fontSize = 18.sp)
+                Text(text = post.leasePeriod)
+                Text(text = "$${post.price}")
+                Text(text = post.content)
             }
         }
     }

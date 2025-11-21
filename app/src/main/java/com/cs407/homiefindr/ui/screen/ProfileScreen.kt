@@ -51,7 +51,7 @@ fun ProfileScreen(
                 .get()
                 .addOnSuccessListener { doc: DocumentSnapshot ->
                     if (doc.exists()) {
-                        val name = doc.getString("name") ?: "Jason"
+                        val name = doc.getString("name") ?: "Name"
                         val bio = doc.getString("bio") ?: ""
                         val avatarUrl = doc.getString("avatarUrl")
 
