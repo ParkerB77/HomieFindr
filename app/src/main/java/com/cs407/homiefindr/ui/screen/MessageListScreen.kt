@@ -8,10 +8,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.google.firebase.Timestamp              // ★ new
-import com.google.firebase.auth.ktx.auth        // ★ new
+import com.google.firebase.Timestamp
+import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.DocumentSnapshot
-import com.google.firebase.firestore.Query      // ★ new
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import java.time.Instant
@@ -23,18 +22,54 @@ data class Conversation(
     val time: Instant = Instant.now()
 )
 
-// ★ removed demoConversations; we now load from Firestore
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MessagesListScreen(onOpenChat: (String) -> Unit) {
-    val db = remember { Firebase.firestore }                // ★ Firestore instance
-    val currentUserId = Firebase.auth.currentUser?.uid ?: ""// ★ logged-in user
+fun MessagesListScreen(
+    onOpenChat: (String) -> Unit
+) {
+    // Firestore 实例
+    val db = remember { Firebase.firestore }
+    // 当前登录用户 uid
+    val currentUserId = Firebase.auth.currentUser?.uid ?: ""
 
-    var list by remember { mutableStateOf<List<Conversation>>(emptyList()) }
+    var conversations by remember { mutableStateOf<List<Conversation>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    // ★ Listen to all conversations that include the current user in "members" array
+    // ---------- 1. use code to do the test ----------
+    LaunchedEffect(Unit) {
+        if (currentUserId.isBlank()) return@LaunchedEffect
+
+        val otherUserId = "tmaJ5Ej4UJVmRdstU2ukPscLmD62"
+
+        val testDocRef = db.collection("conversations").document("testChatFromApp")
+
+        testDocRef.get()
+            .addOnSuccessListener { snap ->
+
+                if (!snap.exists()) {
+                    val data = mapOf(
+                        "title" to "Test chat",
+                        "lastMsg" to "Hello from app",
+                        "members" to listOf(currentUserId, otherUserId),
+                        "updatedAt" to Timestamp.now()
+                    )
+                    testDocRef.set(data)
+                        .addOnSuccessListener {
+                            println("DEBUG created testChatFromApp")
+                        }
+                        .addOnFailureListener { e ->
+                            println("DEBUG failed to create test chat: ${e.message}")
+                        }
+                } else {
+                    println("DEBUG testChatFromApp already exists")
+                }
+            }
+            .addOnFailureListener { e ->
+                println("DEBUG init error: ${e.message}")
+            }
+    }
+
+    // ---------- 2. listen ----------
     DisposableEffect(currentUserId) {
         if (currentUserId.isBlank()) {
             error = "Not signed in"
@@ -42,14 +77,16 @@ fun MessagesListScreen(onOpenChat: (String) -> Unit) {
         } else {
             val registration = db.collection("conversations")
                 .whereArrayContains("members", currentUserId)
-                .orderBy("updatedAt", Query.Direction.DESCENDING)
                 .addSnapshotListener { snapshot, e ->
                     if (e != null) {
                         error = e.message
+                        println("DEBUG listener error: ${e.message}")
                         return@addSnapshotListener
                     }
+
                     if (snapshot != null) {
-                        list = snapshot.documents.map { doc ->
+                        println("DEBUG listener size = ${snapshot.size()}")
+                        conversations = snapshot.documents.map { doc ->
                             doc.toConversation()
                         }
                     }
@@ -61,21 +98,35 @@ fun MessagesListScreen(onOpenChat: (String) -> Unit) {
         }
     }
 
+    // --------------------- UI ---------------------
     Column(Modifier.fillMaxSize()) {
         CenterAlignedTopAppBar(title = { Text("Messages") })
 
-        // ★ Debug 当前 uid
+        // Debug
         Text(
             text = "uid = $currentUserId",
             modifier = Modifier.padding(8.dp),
             style = MaterialTheme.typography.bodySmall
         )
-
+        Text(
+            text = "convs = ${conversations.size}",
+            modifier = Modifier.padding(horizontal = 8.dp),
+            style = MaterialTheme.typography.bodySmall
+        )
         if (error != null) {
             Text(
                 text = error ?: "",
                 color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(8.dp)
+                modifier = Modifier.padding(8.dp),
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
+        if (conversations.isEmpty() && error == null) {
+            Text(
+                text = "No conversations yet",
+                modifier = Modifier.padding(16.dp),
+                style = MaterialTheme.typography.bodyMedium
             )
         }
 
@@ -84,13 +135,13 @@ fun MessagesListScreen(onOpenChat: (String) -> Unit) {
             contentPadding = PaddingValues(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(list) { c ->
+            items(conversations) { c ->
                 Surface(
                     shape = MaterialTheme.shapes.medium,
                     tonalElevation = 1.dp,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onOpenChat(c.id) }   // ★ open chat with this conversation id
+                        .clickable { onOpenChat(c.id) }
                 ) {
                     Column(Modifier.padding(12.dp)) {
                         Text(c.title, style = MaterialTheme.typography.titleMedium)
@@ -103,13 +154,14 @@ fun MessagesListScreen(onOpenChat: (String) -> Unit) {
     }
 }
 
-// ★ Helper extension to map Firestore document → Conversation data class
+// ---------- Firestore Document -> Conversation ----------
 private fun DocumentSnapshot.toConversation(): Conversation {
     val id = this.id
     val title = getString("title") ?: "Chat"
     val lastMsg = getString("lastMsg") ?: ""
     val ts: Timestamp? = getTimestamp("updatedAt")
     val instant = ts?.toDate()?.toInstant() ?: Instant.EPOCH
+
     return Conversation(
         id = id,
         title = title,

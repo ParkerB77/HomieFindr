@@ -54,13 +54,17 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation("androidx.compose.material:material-icons-extended")
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("com.google.firebase:firebase-storage-ktx")
+    // Firebase Auth (BoM controls versions)
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
 
     // Firebase (BoM)
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
-    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore-ktx")
-    implementation("com.google.firebase:firebase-storage-ktx")  // ← here, inside dependencies
+    // Add the dependency for the Cloud Storage library
+    implementation("com.google.firebase:firebase-storage")
+
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
