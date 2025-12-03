@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -12,10 +13,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,7 +40,8 @@ import com.cs407.homiefindr.data.model.ApartmentPost
 @Composable
 fun ApartmentsScreen(
     onClickAdd: () -> Unit,
-    vm: ApartmentsViewModel = viewModel()
+    vm: ApartmentsViewModel = viewModel(),
+
 ) {
     val state = vm.uiState
     val posts = state.posts
@@ -156,14 +161,32 @@ private fun ApartmentCard(post: ApartmentPost) {
             }
 
             // Apartment information (using real data now)
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = post.title, fontSize = 18.sp)
-                Text(text = post.leasePeriod)
-                Text(text = "$${post.price}")
-                Text(text = post.content)
+            Row (
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ){
+                Column {
+                    Text(text = post.title, fontSize = 18.sp)
+                    Text(text = post.leasePeriod)
+                    Text(text = "$${post.price}")
+                    Text(text = post.content)
+                }
+
+
+                IconButton(
+
+                    onClick = {
+                        // TODO: link to chat
+                    },
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ChatBubble,
+                        contentDescription = "Chat Button"
+                    )
+                }
+
             }
+
         }
     }
 }

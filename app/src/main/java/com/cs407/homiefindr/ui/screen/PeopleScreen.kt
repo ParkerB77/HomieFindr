@@ -81,23 +81,6 @@ fun PeopleScreen( onClickPerson: () -> Unit, onClickAdd: () -> Unit) {
         }
 
 
-        //The add button
-        IconButton(
-            onClick = onClickAdd,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(bottom = 110.dp)
-//                .background(color = Color.Gray)
-
-        ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "add button",
-                modifier = Modifier.size(40.dp)
-            )
-        }
-
-
         LazyColumn (
             modifier = Modifier.padding(top = 100.dp, bottom = 100.dp)
         ){
@@ -161,9 +144,24 @@ fun PeopleScreen( onClickPerson: () -> Unit, onClickAdd: () -> Unit) {
                 }
             }
         }
+
+
+        //The add button
+        IconButton(
+            onClick = onClickAdd,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 110.dp)
+//                .background(color = Color.Gray)
+
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "add button",
+                modifier = Modifier.size(40.dp)
+            )
+        }
     }
-
-
 }
 
 //@Preview
