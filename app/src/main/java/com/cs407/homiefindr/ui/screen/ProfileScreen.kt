@@ -20,92 +20,124 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 // ★ KTX 版本 Firestore 写法
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
-data class ProfileUiState(
-    val name: String = "Name",
-    val bio: String = "",
-    val avatarUri: Uri? = null
-)
+//data class ProfileUiState(
+//    val name: String = "Name",
+//    val bio: String = "",
+//    val avatarUri: Uri? = null
+//)
 
 @Composable
 fun ProfileScreen(
-    userId: String,        // 从导航传进来的 uid
-    onDeleteAndLogout: () -> Unit
+    profileViewModel: ProfileViewModel = viewModel(),
+    onNavigateToLogin: () -> Unit,
 ) {
-    var state by remember { mutableStateOf(ProfileUiState()) }
+    val state by profileViewModel.uiState.collectAsState()
+
     var editing by remember { mutableStateOf(false) }
 
-    // ★ KTX：直接用 Firebase.firestore
-    val db = remember { Firebase.firestore }
-
-    // ---------- 第一次进入，用 userId 从 Firestore 读 profile ----------
-    LaunchedEffect(userId) {
-        if (userId.isNotBlank()) {
-            db.collection("profiles")
-                .document(userId)
-                .get()
-                .addOnSuccessListener { doc: DocumentSnapshot ->
-                    if (doc.exists()) {
-                        val name = doc.getString("name") ?: "Name"
-                        val bio = doc.getString("bio") ?: ""
-                        val avatarUrl = doc.getString("avatarUrl")
-
-                        state = state.copy(
-                            name = name,
-                            bio = bio,
-                            avatarUri = avatarUrl?.let { Uri.parse(it) }
-                        )
-                    }
+    LaunchedEffect(true) {
+        profileViewModel.events.collect { event ->
+            when (event) {
+                ProfileEvent.NavigateToLogin -> {
+                    onNavigateToLogin()
                 }
+            }
         }
     }
+//    // ★ KTX：直接用 Firebase.firestore
+//    val db = remember { Firebase.firestore }
+//
+//    // ---------- 第一次进入，用 userId 从 Firestore 读 profile ----------
+//    LaunchedEffect(userId) {
+//        if (userId.isNotBlank()) {
+//            db.collection("profiles")
+//                .document(userId)
+//                .get()
+//                .addOnSuccessListener { doc: DocumentSnapshot ->
+//                    if (doc.exists()) {
+//                        val name = doc.getString("name") ?: "Jason"
+//                        val bio = doc.getString("bio") ?: ""
+//                        val avatarUrl = doc.getString("avatarUrl")
+//
+//                        state = state.copy(
+//                            name = name,
+//                            bio = bio,
+//                            avatarUri = avatarUrl?.let { Uri.parse(it) }
+//                        )
+//                    }
+//                }
+//        }
+//    }
+//
+//    // ---------- 点击 Done 时：把当前资料写回 Firestore ----------
+//
+//    fun saveProfileToFirestore() {
+//        if (userId.isBlank()) return
+//
+//        val data = hashMapOf(
+//            "name" to state.name,
+//            "bio" to state.bio,
+//            "avatarUrl" to state.avatarUri?.toString()
+//        )
+//
+//        db.collection("profiles")
+//            .document(userId)
+//            .set(data)
+//    }
+//
+//    // ---------- 删除 profile 文档 ----------
+//    fun deleteProfileFromFirestore() {
+//        if (userId.isBlank()) return
+//
+//        db.collection("profiles")
+//            .document(userId)
+//            .delete()
+//            .addOnSuccessListener {
+//                // when profile is really gone, trigger logout + nav
+//                onDeleteAndLogout()
+//            }
+//            .addOnFailureListener { e ->
+//                // optional: show error somewhere
+//                println("Delete failed: ${e.message}")
+//            }
+//    }
+//
+//
+//    // ---------- 选头像 ----------
 
-    // ---------- 点击 Done 时：把当前资料写回 Firestore ----------
-
-    fun saveProfileToFirestore() {
-        if (userId.isBlank()) return
-
-        val data = hashMapOf(
-            "name" to state.name,
-            "bio" to state.bio,
-            "avatarUrl" to state.avatarUri?.toString()
-        )
-
-        db.collection("profiles")
-            .document(userId)
-            .set(data)
-    }
-
-    // ---------- 删除 profile 文档 ----------
-    fun deleteProfileFromFirestore() {
-        if (userId.isBlank()) return
-
-        db.collection("profiles")
-            .document(userId)
-            .delete()
-            .addOnSuccessListener {
-                // when profile is really gone, trigger logout + nav
-                onDeleteAndLogout()
-            }
-            .addOnFailureListener { e ->
-                // optional: show error somewhere
-                println("Delete failed: ${e.message}")
-            }
-    }
-
-
-    // ---------- 选头像 ----------
-    val pickAvatarLauncher = rememberLauncherForActivityResult(
+    val pickAvatar = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         if (uri != null) {
-            state = state.copy(avatarUri = uri)
+            profileViewModel.updateAvatar(uri)
         }
+    }
+
+    if (state.isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        return // stops updating ui when loading
+    }
+
+    if (state.errorMessage != null) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(text = "Error: ${state.errorMessage}")
+        }
+        return // stops updating ui when there's an error
     }
 
     // --------------------- Layout ---------------------
@@ -116,11 +148,11 @@ fun ProfileScreen(
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
-
+        Spacer(Modifier.height(24.dp))
+        // for user to go into their favorite
         FloatingActionButton(
             onClick = {
-                // TODO: 之后可以跳转到 FavoriteScreen
+                // TODO: go to FavoriteScreen
             },
             modifier = Modifier.align(Alignment.End)
         ) {
@@ -141,7 +173,7 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 头像
+        // avatar
         if (state.avatarUri != null) {
             AsyncImage(
                 model = state.avatarUri,
@@ -160,11 +192,13 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 名字
+        // name
         if (editing) {
             OutlinedTextField(
                 value = state.name,
-                onValueChange = { state = state.copy(name = it) },
+                onValueChange = {
+                    profileViewModel.onNameChange(it)
+                },
                 label = { Text("Name") }
             )
         } else {
@@ -178,36 +212,27 @@ fun ProfileScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(
-                onClick = {
-                    if (editing) {
-                        saveProfileToFirestore()
-                    }
-                    editing = !editing
+            OutlinedButton(onClick = {
+                if (editing) {
+                profileViewModel.saveProfile()
                 }
-            ) {
-                Text(if (editing) "Done" else "Edit")
-            }
+                editing = !editing
+            }) {
 
-            // ★ Red delete profile button
-            Button(
-                onClick = { deleteProfileFromFirestore() },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError
-                )
-            ) {
-                Text("Delete Profile")
+                Text(if (editing) "Save" else "Edit")
             }
-
-            // TODO: 这里以后可以加 Sign-out 按钮
+            Button(onClick = {
+                profileViewModel.signOut()
+            }) {
+                Text("Sign-out")
+            }
         }
 
         if (editing) {
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedButton(
                 onClick = {
-                    pickAvatarLauncher.launch(
+                    pickAvatar.launch(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                     )
                 }
@@ -223,7 +248,9 @@ fun ProfileScreen(
         if (editing) {
             OutlinedTextField(
                 value = state.bio,
-                onValueChange = { state = state.copy(bio = it) },
+                onValueChange = {
+                    profileViewModel.onBioChange(it)
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 120.dp),
