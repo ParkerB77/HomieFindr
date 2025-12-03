@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -91,30 +92,37 @@ fun OthersProfileScreen(modifier: Modifier = Modifier) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    FloatingActionButton(
-                        onClick = {
-                        }
-                    ) {
+
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.FavoriteBorder,
-                                contentDescription = "Favorite",
-                            )
+                            IconButton( onClick = {
+                                // TODO:
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.FavoriteBorder,
+                                    contentDescription = "Favorite",
+                                )
+                            }
+
                             Spacer(Modifier.width(16.dp))
-                            Icon(
-                                imageVector = Icons.Default.Send,
-                                contentDescription = "Message",
-                            )
-                            Spacer(Modifier.width(16.dp))
-                            Icon(
-                                imageVector = Icons.Default.Share,
-                                contentDescription = "Share",
-                            )
+                            IconButton(onClick = {
+                                // TODO: message
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.Send,
+                                    contentDescription = "Message",
+                                )
+                            }
+
+//                            Spacer(Modifier.width(16.dp))
+//                            Icon(
+//                                imageVector = Icons.Default.Share,
+//                                contentDescription = "Share",
+//                            )
                     }
-                    }
+
                 }
             }
         }
