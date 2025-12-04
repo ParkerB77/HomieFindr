@@ -36,15 +36,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cs407.homiefindr.data.model.ApartmentPost
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 @Composable
 fun ApartmentsScreen(
     onClickAdd: () -> Unit,
+    onOpenChat: (String) -> Unit,
     vm: ApartmentsViewModel = viewModel(),
-
 ) {
     val state = vm.uiState
     val posts = state.posts
+    val db = remember { Firebase.firestore }
+    val currentUser = Firebase.auth.currentUser?.uid ?: ""
 
     var search: String by remember { mutableStateOf("") }
 
@@ -94,7 +100,11 @@ fun ApartmentsScreen(
                 .padding(top = 100.dp, bottom = 100.dp, start = 16.dp, end = 16.dp)
         ) {
             items(filteredPosts) { post ->
-                ApartmentCard(post = post)
+                ApartmentCard(
+                    post = post, openChat =  onOpenChat,
+                    db = db,
+                    currentUser = currentUser
+                )
             }
         }
         // The + add button (bottom-right, same position)
@@ -115,7 +125,10 @@ fun ApartmentsScreen(
 }
 
 @Composable
-private fun ApartmentCard(post: ApartmentPost) {
+private fun ApartmentCard(post: ApartmentPost,
+                          openChat: (String) -> Unit,
+                          db: FirebaseFirestore,
+                          currentUser: String) {
     var isSaved by remember { mutableStateOf(true) }
 
     ElevatedCard(
@@ -172,12 +185,19 @@ private fun ApartmentCard(post: ApartmentPost) {
                     Text(text = post.content)
                 }
 
-
                 IconButton(
 
-                    onClick = {
-                        // TODO: link to chat
-                    },
+                    onClick =
+                        // Create a chat with the poster or open chat with the poster
+                        {
+                            startOrGetConversation(
+                                db = db,
+                                currentUserId = currentUser,
+                                otherUserId = post.ownerId,
+                                onResult = openChat,
+                                onError = {  /* */}
+                            )
+                        },
                 ) {
                     Icon(
                         imageVector = Icons.Default.ChatBubble,

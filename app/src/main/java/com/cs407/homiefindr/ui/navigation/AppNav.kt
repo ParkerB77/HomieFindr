@@ -29,7 +29,7 @@ sealed class Route(val route: String) {
 
     data object Profile : Route("profile")
 
-    data object OtherProfile : Route("OthersProfileScreen")
+    data object OtherProfile : Route("OthersProfileScreen/{uid}")
 
     data object AddPerson : Route("AddPeopleScreen")
 
@@ -112,12 +112,25 @@ private fun NavGraph(
             )
         }
 
-        composable(Route.Home.route) { ApartmentsScreen( onClickAdd = { nav.navigate(Route.AddApartment.route)}) }
-        composable(Route.OtherProfile.route) { OthersProfileScreen() }
+        composable(Route.Home.route) { ApartmentsScreen( onClickAdd = { nav.navigate(Route.AddApartment.route)}, onOpenChat = { chatId -> nav.navigate("chat/$chatId") }) }
+
         composable(Route.AddPerson.route) { AddPeopleScreen(clickBack = { nav.navigate(Route.People.route) }) }
         composable(Route.AddApartment.route) { AddPostScreen(clickBack = { nav.navigate(Route.Home.route) }) }
-        composable(Route.People.route) { PeopleScreen(onClickPerson = { nav.navigate(Route.OtherProfile.route) }, onClickAdd = { nav.navigate(Route.AddPerson.route)}) }
+        composable(Route.People.route) { PeopleScreen(onClickPerson = { uid -> nav.navigate("OthersProfileScreen/$uid") }, onClickAdd = { nav.navigate(Route.AddPerson.route)}) }
         messagesGraph(nav)
+
+        composable(route = Route.OtherProfile.route,
+//            "otherProfile/{uid}",
+            arguments = listOf(navArgument("uid") { type = NavType.StringType })
+        ) { args ->
+            val uid = args.arguments?.getString("uid") ?: ""
+
+            OthersProfileScreen(
+                uid = uid,
+                onBack = { nav.popBackStack() },
+                onOpenChat = { chatId -> nav.navigate("chat/$chatId") }
+            )
+        }
 
         composable(
             route = "profile/{uid}",
