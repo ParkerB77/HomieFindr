@@ -343,6 +343,7 @@ private fun ApartmentCard(
                 }
 
 
+                // message
                 IconButton(
                     onClick = {
                         startOrGetConversation(

@@ -15,9 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -25,23 +23,23 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import com.cs407.homiefindr.data.model.UserProfile
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import com.cs407.homiefindr.data.model.UserProfile
-import kotlinx.coroutines.tasks.await
 import com.google.firebase.firestore.toObject
+import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.tasks.await
 
 
 @Composable
@@ -123,11 +121,21 @@ fun OthersProfileScreen(
                 ) {
 
                     // place holder for profile picture
-                    Icon(
-                        imageVector = Icons.Default.AccountCircle,
-                        contentDescription = "Profile image",
-                        modifier = Modifier.size(96.dp)
-                    )
+                    if (!avatarUri.isBlank()) {
+                        AsyncImage(
+                            model = avatarUri,
+                            contentDescription = "Profile image",
+                            modifier = Modifier.size(96.dp),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = "Profile image",
+                            modifier = Modifier.size(96.dp)
+                        )
+                    }
+
 //                    Text(
 //                        text = "pfp ph",
 //                        style = MaterialTheme.typography.displayLarge
@@ -170,13 +178,13 @@ fun OthersProfileScreen(
 
                             Spacer(Modifier.width(16.dp))
                             IconButton(onClick = {
-                                // TODO: message
+                                // message
                                 try {
                                     startOrGetConversation(
                                         db = db,
                                         currentUserId = currentUser,
                                         otherUserId = uid,
-                                        onResult = {onOpenChat} ,
+                                        onResult = onOpenChat ,
                                         onError = {onBack}
                                     )
 
