@@ -18,7 +18,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.cs407.homiefindr.ui.screen.*
-import com.google.firebase.auth.FirebaseAuth   // ★ 新增
+import com.google.firebase.auth.FirebaseAuth
 
 sealed class Route(val route: String) {
     data object Login : Route("login")
@@ -29,7 +29,7 @@ sealed class Route(val route: String) {
 
     data object Profile : Route("profile")
 
-    data object OtherProfile : Route("OthersProfileScreen")
+    data object OtherProfile : Route("OthersProfileScreen/{uid}")
 
     data object AddPerson : Route("AddPeopleScreen")
 
@@ -74,7 +74,7 @@ private fun BottomBar(nav: NavHostController) {
                     if (item.route == Route.Profile.route) {
                         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
                         if (uid.isNotBlank()) {
-                            nav.navigate("profile/$uid")   // ★ 加 uid
+                            nav.navigate("profile/$uid")
                             return@NavigationBarItem
                         }
                     }
@@ -104,7 +104,7 @@ private fun NavGraph(
         composable(Route.Login.route) {
             LoginPage(
                 loginButtonClick = { userState ->
-                    nav.navigate("profile/${userState.uid}") {   // ★
+                    nav.navigate("profile/${userState.uid}") {
                         popUpTo(Route.Login.route) { inclusive = true }
                         launchSingleTop = true
                     }
@@ -112,12 +112,40 @@ private fun NavGraph(
             )
         }
 
-        composable(Route.Home.route) { ApartmentsScreen( onClickAdd = { nav.navigate(Route.AddApartment.route)}) }
-        composable(Route.OtherProfile.route) { OthersProfileScreen() }
-        composable(Route.AddPerson.route) { AddPeopleScreen(clickBack = { nav.navigate(Route.People.route) }) }
-        composable(Route.AddApartment.route) { AddPostScreen(clickBack = { nav.navigate(Route.Home.route) }) }
-        composable(Route.People.route) { PeopleScreen(onClickPerson = { nav.navigate(Route.OtherProfile.route) }, onClickAdd = { nav.navigate(Route.AddPerson.route)}) }
+        composable(Route.Home.route) {
+            ApartmentsScreen(
+                onClickAdd = { nav.navigate(Route.AddApartment.route) },
+                onOpenChat = { chatId -> nav.navigate("chat/$chatId") },
+                onOpenOwnerProfile = { uid -> nav.navigate("OthersProfileScreen/$uid") }
+            )
+        }
+
+        composable(Route.AddPerson.route) {
+            AddPeopleScreen(clickBack = { nav.navigate(Route.People.route) })
+        }
+        composable(Route.AddApartment.route) {
+            AddPostScreen(clickBack = { nav.navigate(Route.Home.route) })
+        }
+        composable(Route.People.route) {
+            PeopleScreen(
+                onClickPerson = { uid -> nav.navigate("OthersProfileScreen/$uid") },
+                onClickAdd = { nav.navigate(Route.AddPerson.route) }
+            )
+        }
         messagesGraph(nav)
+
+        composable(
+            route = Route.OtherProfile.route,
+            arguments = listOf(navArgument("uid") { type = NavType.StringType })
+        ) { args ->
+            val uid = args.arguments?.getString("uid") ?: ""
+
+            OthersProfileScreen(
+                uid = uid,
+                onBack = { nav.popBackStack() },
+                onOpenChat = { chatId -> nav.navigate("chat/$chatId") }
+            )
+        }
 
         composable(
             route = "profile/{uid}",
@@ -126,12 +154,7 @@ private fun NavGraph(
             val uid = entry.arguments?.getString("uid") ?: ""
 
             ProfileScreen(
-                userId = uid,
-                onDeleteAndLogout = {
-                    // 1. Sign out from Firebase
-                    FirebaseAuth.getInstance().signOut()
-
-                    // 2. Go back to Login and clear back stack
+                onNavigateToLogin = {
                     nav.navigate(Route.Login.route) {
                         popUpTo(nav.graph.startDestinationId) { inclusive = true }
                         launchSingleTop = true
@@ -139,7 +162,6 @@ private fun NavGraph(
                 }
             )
         }
-
     }
 }
 
