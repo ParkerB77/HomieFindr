@@ -133,7 +133,7 @@ fun OthersProfileScreen(
                                         db = db,
                                         currentUserId = currentUser,
                                         otherUserId = uid,
-                                        onResult = {onOpenChat} ,
+                                        onResult = onOpenChat ,
                                         onError = {onBack}
                                     )
 
