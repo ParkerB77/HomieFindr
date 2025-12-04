@@ -1,4 +1,4 @@
-// com/cs407/homiefindr/ui/screen/AddPostViewModel.kt
+// com/cs407/homiefindr/ui/screen/AddPeopleViewModel.kt
 package com.cs407.homiefindr.ui.screen
 
 import android.net.Uri
@@ -8,19 +8,20 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.cs407.homiefindr.data.repository.FirestoreRepository
 
-class AddPostViewModel : ViewModel() {
+class AddPeopleViewModel : ViewModel() {
 
     private val repo = FirestoreRepository()
 
     var isSaving by mutableStateOf(false)
         private set
+
     var errorMessage by mutableStateOf<String?>(null)
         private set
 
-    fun saveApartmentPost(
-        title: String,
-        content: String,
-        price: Int,
+    fun savePeoplePost(
+        name: String,
+        bio: String,
+        maxPrice: Int?,
         leasePeriod: String,
         imageUris: List<Uri>,
         onDone: (Boolean) -> Unit
@@ -28,15 +29,17 @@ class AddPostViewModel : ViewModel() {
         isSaving = true
         errorMessage = null
 
-        repo.addApartmentPost(
-            title = title,
-            content = content,
-            price = price,
-            leasePeriod = leasePeriod,
+        repo.createPost(
+            title = name,
+            bio = bio,
+            priceMin = null,
+            priceMax = maxPrice,
+            leaseStartDate = leasePeriod,
+            leaseEndDate = null,
             imageUris = imageUris
-        ) { ok, err ->
+        ) { ok ->
             isSaving = false
-            errorMessage = err?.message
+            if (!ok) errorMessage = "Failed to save people post"
             onDone(ok)
         }
     }
