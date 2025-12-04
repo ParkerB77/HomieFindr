@@ -1,3 +1,4 @@
+// com/cs407/homiefindr/data/model/ApartmentPost.kt
 package com.cs407.homiefindr.data.model
 
 data class ApartmentPost(
@@ -7,5 +8,7 @@ data class ApartmentPost(
     val price: Int = 0,
     val leasePeriod: String = "",
     val ownerId: String = "",
-    val createdAt: Long = System.currentTimeMillis()
+    val ownerEmail: String = "",
+    val createdAt: Long = System.currentTimeMillis(),
+    val imageUrls: List<String> = emptyList()   // NEW
 )

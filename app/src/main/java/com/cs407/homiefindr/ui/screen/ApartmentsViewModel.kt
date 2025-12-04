@@ -1,5 +1,5 @@
+// com/cs407/homiefindr/ui/screen/ApartmentsViewModel.kt
 package com.cs407.homiefindr.ui.screen
-
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,5 +37,13 @@ class ApartmentsViewModel : ViewModel() {
                 )
             }
         )
+    }
+
+    fun deletePost(postId: String) {
+        repo.deleteApartmentPost(postId) { ok, e ->
+            if (!ok) {
+                uiState = uiState.copy(errorMessage = e?.message)
+            }
+        }
     }
 }
