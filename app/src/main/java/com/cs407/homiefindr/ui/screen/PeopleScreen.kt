@@ -246,6 +246,10 @@ fun PeopleScreen( onClickPerson: () -> Unit, onClickAdd: () -> Unit) {
                             onCheckedChange = { petsAllowed = it }
                         )
                         Text("Pets Allowed")
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Checkbox(
                             checked = forMale,
                             onCheckedChange = { forMale = it }
