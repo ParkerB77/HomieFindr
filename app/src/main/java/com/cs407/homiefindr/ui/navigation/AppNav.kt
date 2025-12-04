@@ -112,7 +112,7 @@ private fun NavGraph(
             )
         }
 
-        composable(Route.Home.route) { ApartmentsScreen( onClickAdd = { nav.navigate(Route.AddApartment.route)}) }
+        composable(Route.Home.route) { ApartmentsScreen( onClickAdd = { nav.navigate(Route.AddApartment.route)}, onOpenChat = { chatId -> nav.navigate("chat/$chatId") }) }
         composable(Route.OtherProfile.route) { OthersProfileScreen() }
         composable(Route.AddPerson.route) { AddPeopleScreen(clickBack = { nav.navigate(Route.People.route) }) }
         composable(Route.AddApartment.route) { AddPostScreen(clickBack = { nav.navigate(Route.Home.route) }) }
