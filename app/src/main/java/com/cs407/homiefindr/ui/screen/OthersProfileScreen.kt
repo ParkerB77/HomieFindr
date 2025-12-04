@@ -178,13 +178,13 @@ fun OthersProfileScreen(
 
                             Spacer(Modifier.width(16.dp))
                             IconButton(onClick = {
-                                // TODO: message
+                                // message
                                 try {
                                     startOrGetConversation(
                                         db = db,
                                         currentUserId = currentUser,
                                         otherUserId = uid,
-                                        onResult = {onOpenChat} ,
+                                        onResult = onOpenChat ,
                                         onError = {onBack}
                                     )
 
