@@ -101,6 +101,7 @@ fun PeopleScreen(
     var showFilterDialog by remember { mutableStateOf(false) }
     var minPrice by remember { mutableStateOf("") }
     var maxPrice by remember { mutableStateOf("") }
+    var priceRangeError by remember { mutableStateOf(false) }
     var leaseStartDateMillis by remember { mutableStateOf<Long?>(null) }
     var leaseEndDateMillis by remember { mutableStateOf<Long?>(null) }
     var showStartDatePicker by remember { mutableStateOf(false) }
@@ -235,14 +236,32 @@ fun PeopleScreen(
                             onValueChange = { minPrice = it },
                             label = { Text("Min") },
                             modifier = Modifier.weight(1f),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            isError = priceRangeError,
+                            supportingText = {
+                                if (priceRangeError) {
+                                    Text(
+                                        text = "Min-price must be less than max-price",
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
                         )
                         OutlinedTextField(
                             value = maxPrice,
                             onValueChange = { maxPrice = it },
                             label = { Text("Max") },
                             modifier = Modifier.weight(1f),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            isError = priceRangeError,
+                            supportingText = {
+                                if (priceRangeError) {
+                                    Text(
+                                        text = "Max-price must be more than min-price",
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
                         )
                     }
                     Text("Lease Period", fontSize = 16.sp)
@@ -330,13 +349,24 @@ fun PeopleScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
+                        val minPrice = minPrice.toIntOrNull()
+                        val maxPrice = maxPrice.toIntOrNull()
+                        val invalidPrice = minPrice != null && maxPrice != null && maxPrice < minPrice
                         val startDate = leaseStartDateMillis
                         val endDate = leaseEndDateMillis
                         val invalidDate = startDate != null && endDate != null && endDate < startDate
+                        if (invalidPrice) {
+                            priceRangeError = true
+                        } else {
+                            priceRangeError = false
+                        }
                         if (invalidDate) {
                             dateRangeError = true
-                            return@TextButton
                         } else {
+                            dateRangeError = false
+                        }
+                        if (!invalidPrice && !invalidDate) {
+                            priceRangeError = false
                             dateRangeError = false
                             // TODO: filter logic with state variables
                             showFilterDialog = false
