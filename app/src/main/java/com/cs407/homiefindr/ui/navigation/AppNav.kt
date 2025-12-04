@@ -127,7 +127,8 @@ private fun NavGraph(
 
             OthersProfileScreen(
                 uid = uid,
-                onBack = { nav.popBackStack() }
+                onBack = { nav.popBackStack() },
+                onOpenChat = { chatId -> nav.navigate("chat/$chatId") }
             )
         }
 

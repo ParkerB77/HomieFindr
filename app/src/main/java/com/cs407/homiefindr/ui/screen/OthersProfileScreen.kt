@@ -1,5 +1,6 @@
 package com.cs407.homiefindr.ui.screen
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,12 +24,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 
 @Composable
@@ -36,8 +42,14 @@ fun OthersProfileScreen(
     modifier: Modifier = Modifier,
     uid: String,
     onBack: () -> Unit,
+    onOpenChat: (String) -> Unit,
     vm: OtherProfileViewModel = viewModel()
 ) {
+//    val state = vm.uiState
+    val db = remember { Firebase.firestore }
+    val currentUser = Firebase.auth.currentUser?.uid ?: ""
+    val context = LocalContext.current
+
     Scaffold(
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
@@ -116,6 +128,29 @@ fun OthersProfileScreen(
                             Spacer(Modifier.width(16.dp))
                             IconButton(onClick = {
                                 // TODO: message
+                                try {
+                                    startOrGetConversation(
+                                        db = db,
+                                        currentUserId = currentUser,
+                                        otherUserId = uid,
+                                        onResult = {onOpenChat} ,
+                                        onError = {onBack}
+                                    )
+
+                                    Toast.makeText(
+                                        context,
+                                        "Successfully made chat",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                } catch(e: Exception) {
+                                    Toast.makeText(
+                                        context,
+                                        "Couldn't open chat",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+
+
                             }) {
                                 Icon(
                                     imageVector = Icons.Default.Send,
