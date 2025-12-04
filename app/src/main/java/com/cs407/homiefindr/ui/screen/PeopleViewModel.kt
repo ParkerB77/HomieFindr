@@ -1,4 +1,3 @@
-// com/cs407/homiefindr/ui/screen/PeopleViewModel.kt
 package com.cs407.homiefindr.ui.screen
 
 import androidx.compose.runtime.getValue
@@ -26,7 +25,6 @@ class PeopleViewModel : ViewModel() {
     }
 
     private fun loadPeoplePosts() {
-        uiState = uiState.copy(isLoading = true)
         repo.getAllPosts { posts ->
             uiState = uiState.copy(
                 posts = posts,
@@ -36,14 +34,10 @@ class PeopleViewModel : ViewModel() {
         }
     }
 
-    fun deletePost(postId: String) {
-        repo.deletePeoplePost(postId) { ok, e ->
-            if (!ok) {
-                uiState = uiState.copy(errorMessage = e?.message)
-            } else {
-                // refresh list
-                loadPeoplePosts()
-            }
-        }
+    // ← NEW: call this after a successful Firestore delete
+    fun removePostFromState(postId: String) {
+        uiState = uiState.copy(
+            posts = uiState.posts.filterNot { it.postId == postId }
+        )
     }
 }

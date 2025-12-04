@@ -43,7 +43,7 @@ fun OthersProfileScreen(
     uid: String,
     onBack: () -> Unit,
     onOpenChat: (String) -> Unit,
-    vm: OtherProfileViewModel = viewModel()
+
 ) {
 //    val state = vm.uiState
     val db = remember { Firebase.firestore }

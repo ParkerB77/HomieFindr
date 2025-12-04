@@ -1,26 +1,41 @@
 package com.cs407.homiefindr.ui.screen
 
+import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,22 +43,37 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.clip
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.cs407.homiefindr.data.model.ApartmentPost
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 @Composable
 fun ApartmentsScreen(
     onClickAdd: () -> Unit,
-    vm: ApartmentsViewModel = viewModel()
+    onOpenChat: (String) -> Unit,
+    onOpenOwnerProfile: (String) -> Unit,
+    vm: ApartmentsViewModel = viewModel(),
 ) {
     val state = vm.uiState
     val posts = state.posts
+    val db = remember { Firebase.firestore }
+    val currentUser = Firebase.auth.currentUser?.uid ?: ""
+    val context = LocalContext.current
 
     var search: String by remember { mutableStateOf("") }
+    var galleryImages by remember { mutableStateOf<List<String>?>(null) }
 
-    // simple local search filter
     val filteredPosts =
         if (search.isBlank()) posts
         else posts.filter {
@@ -56,7 +86,7 @@ fun ApartmentsScreen(
         modifier = Modifier.fillMaxSize()
     ) {
 
-        // Top row with search bar + filter button (same as you had)
+        // search bar + filter
         Row(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -72,9 +102,7 @@ fun ApartmentsScreen(
                 modifier = Modifier.weight(1f)
             )
 
-            IconButton(
-                onClick = { /* TODO: filter posts more smartly */ }
-            ) {
+            IconButton(onClick = { /* TODO filters */ }) {
                 Icon(
                     imageVector = Icons.Default.FilterAlt,
                     contentDescription = "filter button"
@@ -82,17 +110,27 @@ fun ApartmentsScreen(
             }
         }
 
-
-        // List of posts (replaces hard-coded ids, keeps your card layout style)
+        // list of posts
         LazyColumn(
             modifier = Modifier
                 .padding(top = 100.dp, bottom = 100.dp, start = 16.dp, end = 16.dp)
         ) {
             items(filteredPosts) { post ->
-                ApartmentCard(post = post)
+                ApartmentCard(
+                    post = post,
+                    openChat = onOpenChat,
+                    db = db,
+                    currentUser = currentUser,
+                    onShowImages = { galleryImages = it },
+                    onShowToast = { msg ->
+                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                    },
+                    onOpenOwnerProfile = onOpenOwnerProfile
+                )
             }
         }
-        // The + add button (bottom-right, same position)
+
+        // add button
         IconButton(
             onClick = onClickAdd,
             modifier = Modifier
@@ -106,63 +144,220 @@ fun ApartmentsScreen(
             )
         }
 
+        // dialog to show all photos for a post
+        galleryImages?.let { images ->
+            AlertDialog(
+                onDismissRequest = { galleryImages = null },
+                confirmButton = {
+                    TextButton(onClick = { galleryImages = null }) {
+                        Text("Close")
+                    }
+                },
+                title = { Text("Photos") },
+                text = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(260.dp)
+                            .padding(8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            items(images) { url ->
+                                AsyncImage(
+                                    model = url,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(220.dp)
+                                        .padding(4.dp),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                        }
+                    }
+                }
+            )
+        }
     }
 }
 
 @Composable
-private fun ApartmentCard(post: ApartmentPost) {
-    var isSaved by remember { mutableStateOf(true) }
+private fun ApartmentCard(
+    post: ApartmentPost,
+    openChat: (String) -> Unit,
+    db: FirebaseFirestore,
+    currentUser: String,
+    onShowImages: (List<String>) -> Unit,
+    onShowToast: (String) -> Unit,
+    onOpenOwnerProfile: (String) -> Unit
+) {
+    var isSaved by remember { mutableStateOf(false) }
+    val canDelete = post.ownerId == currentUser
 
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(8.dp)
         ) {
-            // Apartment picture + save button (same structure as before)
-            Box(
-                modifier = Modifier.size(90.dp)
+            // fixed-height row so image covers whole left side of content area
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Home,
-                    contentDescription = "Apartment",
-                    modifier = Modifier.size(90.dp)
-                )
-
-                IconButton(
-                    onClick = {
-                        // TODO: toggle save in database if you want
-                        isSaved = !isSaved
-                    },
-                    modifier = Modifier.align(Alignment.TopEnd)
+                // LEFT: image + title under it
+                Column(
+                    modifier = Modifier
+                        .width(150.dp)
+                        .fillMaxHeight(),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    if (isSaved) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .clip(RoundedCornerShape(20.dp))
+                            .clickable(enabled = post.imageUrls.isNotEmpty()) {
+                                if (post.imageUrls.isNotEmpty()) onShowImages(post.imageUrls)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        val firstImage = post.imageUrls.firstOrNull()
+                        if (firstImage != null) {
+                            AsyncImage(
+                                model = firstImage,
+                                contentDescription = "Apartment image",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Home,
+                                contentDescription = "Apartment",
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = post.title.ifBlank { "Listing" },
+                        fontSize = 22.sp,                // bigger title
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable {
+                            onOpenOwnerProfile(post.ownerId)
+                        }
+                    )
+                }
+
+                // RIGHT: "Requirements" + lease + price + description
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 8.dp)
+                ) {
+                    Text(
+                        text = "Requirements",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    HorizontalDivider()
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(top = 4.dp)
+                    ) {
                         Icon(
-                            imageVector = Icons.Default.Favorite,
-                            contentDescription = "Saved"
+                            imageVector = Icons.Default.DateRange,
+                            contentDescription = "icon for time"
                         )
-                    } else {
+                        Text(
+                            text = post.leasePeriod,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+
                         Icon(
-                            imageVector = Icons.Default.FavoriteBorder,
-                            contentDescription = "Not saved"
+                            imageVector = Icons.Default.AttachMoney,
+                            contentDescription = "Money Icon",
+                            modifier = Modifier.padding(start = 12.dp)
+                        )
+                        Text(
+                            text = "$${post.price}",
+                            modifier = Modifier.padding(start = 4.dp)
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(text = post.content)
                 }
             }
 
-            // Apartment information (using real data now)
-            Column(
-                modifier = Modifier.fillMaxWidth()
+            // action row: delete (if owner) + save + chat
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = post.title, fontSize = 18.sp)
-                Text(text = post.leasePeriod)
-                Text(text = "$${post.price}")
-                Text(text = post.content)
+                if (canDelete) {
+                    IconButton(
+                        onClick = {
+                            db.collection("apartmentPosts")
+                                .document(post.id)
+                                .delete()
+                                .addOnSuccessListener {
+                                    onShowToast("Deleted")
+                                }
+                                .addOnFailureListener {
+                                    onShowToast("Delete failed")
+                                }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete post",
+                            tint = Color.Red
+                        )
+                    }
+                }
+
+                IconButton(onClick = {
+                    isSaved = !isSaved
+                    onShowToast(if (isSaved) "Saved" else "Removed from saved")
+                }) {
+                    Icon(
+                        imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = "Saved"
+                    )
+                }
+
+                IconButton(
+                    onClick = {
+                        startOrGetConversation(
+                            db = db,
+                            currentUserId = currentUser,
+                            otherUserId = post.ownerId,
+                            onResult = openChat,
+                            onError = { }
+                        )
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ChatBubble,
+                        contentDescription = "Chat Button"
+                    )
+                }
             }
         }
     }
