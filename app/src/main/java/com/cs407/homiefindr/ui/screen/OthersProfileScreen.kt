@@ -28,10 +28,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 
 @Composable
-fun OthersProfileScreen(modifier: Modifier = Modifier) {
+fun OthersProfileScreen(
+    modifier: Modifier = Modifier,
+    uid: String,
+    onBack: () -> Unit,
+    vm: OtherProfileViewModel = viewModel()
+) {
     Scaffold(
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
@@ -53,6 +59,7 @@ fun OthersProfileScreen(modifier: Modifier = Modifier) {
                         .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    Text(uid)
                     // place holder for profile picture
                     Icon(
                         imageVector = Icons.Default.AccountCircle,
@@ -129,8 +136,8 @@ fun OthersProfileScreen(modifier: Modifier = Modifier) {
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun OthersProfileScreenPreview() {
-    OthersProfileScreen()
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun OthersProfileScreenPreview() {
+//    OthersProfileScreen()
+//}
