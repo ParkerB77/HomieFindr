@@ -130,7 +130,7 @@ fun PeopleScreen(
                 modifier = Modifier.weight(1f)
             )
 
-            IconButton(onClick = { /* TODO filters */ }) {
+            IconButton(onClick = { showFilterDialog = true }) {
                 Icon(
                     imageVector = Icons.Default.FilterAlt,
                     contentDescription = "filter button"
@@ -210,180 +210,6 @@ fun PeopleScreen(
                     }
                 }
             )
-        }
-    }
-}
-
-@Composable
-private fun PersonCard(
-    post: Post,
-    db: FirebaseFirestore,
-    currentUser: String,
-    onShowImages: (List<String>) -> Unit,
-    onShowToast: (String) -> Unit,
-    onClickPerson: (String) -> Unit,
-    onDeleted: (String) -> Unit
-) {
-    // START AS NOT SAVED
-    var isSaved by remember { mutableStateOf(false) }
-    val canDelete = post.creatorId == currentUser
-
-    val leaseText: String = when {
-        !post.leaseStartDate.isNullOrBlank() && !post.leaseEndDate.isNullOrBlank() ->
-            "${post.leaseStartDate} - ${post.leaseEndDate}"
-        !post.leaseStartDate.isNullOrBlank() -> post.leaseStartDate!!
-        !post.leaseEndDate.isNullOrBlank() -> post.leaseEndDate!!
-        else -> ""
-    }
-
-    val priceText: String = when {
-        post.priceMin != null && post.priceMax != null && post.priceMin != post.priceMax ->
-            "${post.priceMin} - ${post.priceMax}"
-        post.priceMin != null -> "${post.priceMin}"
-        post.priceMax != null -> "${post.priceMax}"
-        else -> "0"
-    }
-
-    ElevatedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // LEFT: image + name under it
-                Column(
-                    modifier = Modifier
-                        .width(150.dp)
-                        .fillMaxHeight(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .clip(RoundedCornerShape(20.dp))
-                            .clickable(enabled = post.imageUrls.isNotEmpty()) {
-                                if (post.imageUrls.isNotEmpty()) onShowImages(post.imageUrls)
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        val firstImage = post.imageUrls.firstOrNull()
-                        if (firstImage != null) {
-                            AsyncImage(
-                                model = firstImage,
-                                contentDescription = "Profile image",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Profile image",
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    Text(
-                        text = post.title.ifBlank { "Name" },
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clickable {
-                            onClickPerson(post.creatorId)
-                        }
-                    )
-                }
-
-                // RIGHT: "Requirements" + lease + price + bio
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 8.dp)
-                ) {
-                    Text(
-                        text = "Requirements",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    HorizontalDivider()
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 4.dp)
-                    ) {
-                        Text(
-                            text = leaseText,
-                            modifier = Modifier.padding(end = 12.dp)
-                        )
-
-                        Icon(
-                            imageVector = Icons.Default.AttachMoney,
-                            contentDescription = "Money Icon"
-                        )
-                        Text(
-                            text = "$$priceText",
-                            modifier = Modifier.padding(start = 4.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(text = post.bio)
-                }
-            }
-
-            // action row: delete (if owner) + save
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (canDelete) {
-                    IconButton(
-                        onClick = {
-                            db.collection("posts")
-                                .document(post.postId)
-                                .delete()
-                                .addOnSuccessListener {
-                                    onDeleted(post.postId)      // remove from UI state
-                                    onShowToast("Deleted")
-                                }
-                                .addOnFailureListener {
-                                    onShowToast("Delete failed")
-                                }
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete post",
-                            tint = Color.Red
-                        )
-                    }
-                }
-
-                IconButton(onClick = {
-                    isSaved = !isSaved
-                    onShowToast(if (isSaved) "Saved" else "Removed from saved")
-                }) {
-                    Icon(
-                        imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = "Saved"
-                    )
-                }
-            }
         }
     }
     if (showFilterDialog) {
@@ -583,6 +409,180 @@ private fun PersonCard(
             }
         ) {
             DatePicker(state = datePickerState)
+        }
+    }
+}
+
+@Composable
+private fun PersonCard(
+    post: Post,
+    db: FirebaseFirestore,
+    currentUser: String,
+    onShowImages: (List<String>) -> Unit,
+    onShowToast: (String) -> Unit,
+    onClickPerson: (String) -> Unit,
+    onDeleted: (String) -> Unit
+) {
+    // START AS NOT SAVED
+    var isSaved by remember { mutableStateOf(false) }
+    val canDelete = post.creatorId == currentUser
+
+    val leaseText: String = when {
+        !post.leaseStartDate.isNullOrBlank() && !post.leaseEndDate.isNullOrBlank() ->
+            "${post.leaseStartDate} - ${post.leaseEndDate}"
+        !post.leaseStartDate.isNullOrBlank() -> post.leaseStartDate!!
+        !post.leaseEndDate.isNullOrBlank() -> post.leaseEndDate!!
+        else -> ""
+    }
+
+    val priceText: String = when {
+        post.priceMin != null && post.priceMax != null && post.priceMin != post.priceMax ->
+            "${post.priceMin} - ${post.priceMax}"
+        post.priceMin != null -> "${post.priceMin}"
+        post.priceMax != null -> "${post.priceMax}"
+        else -> "0"
+    }
+
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // LEFT: image + name under it
+                Column(
+                    modifier = Modifier
+                        .width(150.dp)
+                        .fillMaxHeight(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .clip(RoundedCornerShape(20.dp))
+                            .clickable(enabled = post.imageUrls.isNotEmpty()) {
+                                if (post.imageUrls.isNotEmpty()) onShowImages(post.imageUrls)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        val firstImage = post.imageUrls.firstOrNull()
+                        if (firstImage != null) {
+                            AsyncImage(
+                                model = firstImage,
+                                contentDescription = "Profile image",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Profile image",
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = post.title.ifBlank { "Name" },
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable {
+                            onClickPerson(post.creatorId)
+                        }
+                    )
+                }
+
+                // RIGHT: "Requirements" + lease + price + bio
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 8.dp)
+                ) {
+                    Text(
+                        text = "Requirements",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    HorizontalDivider()
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(top = 4.dp)
+                    ) {
+                        Text(
+                            text = leaseText,
+                            modifier = Modifier.padding(end = 12.dp)
+                        )
+
+                        Icon(
+                            imageVector = Icons.Default.AttachMoney,
+                            contentDescription = "Money Icon"
+                        )
+                        Text(
+                            text = "$$priceText",
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(text = post.bio)
+                }
+            }
+
+            // action row: delete (if owner) + save
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (canDelete) {
+                    IconButton(
+                        onClick = {
+                            db.collection("posts")
+                                .document(post.postId)
+                                .delete()
+                                .addOnSuccessListener {
+                                    onDeleted(post.postId)      // remove from UI state
+                                    onShowToast("Deleted")
+                                }
+                                .addOnFailureListener {
+                                    onShowToast("Delete failed")
+                                }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete post",
+                            tint = Color.Red
+                        )
+                    }
+                }
+
+                IconButton(onClick = {
+                    isSaved = !isSaved
+                    onShowToast(if (isSaved) "Saved" else "Removed from saved")
+                }) {
+                    Icon(
+                        imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = "Saved"
+                    )
+                }
+            }
         }
     }
 }
