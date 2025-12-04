@@ -24,6 +24,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +37,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import com.cs407.homiefindr.data.model.UserProfile
+import kotlinx.coroutines.tasks.await
+import com.google.firebase.firestore.toObject
 
 
 @Composable
@@ -42,13 +49,56 @@ fun OthersProfileScreen(
     modifier: Modifier = Modifier,
     uid: String,
     onBack: () -> Unit,
-    onOpenChat: (String) -> Unit,
-
+    onOpenChat: (String) -> Unit
 ) {
 //    val state = vm.uiState
     val db = remember { Firebase.firestore }
     val currentUser = Firebase.auth.currentUser?.uid ?: ""
     val context = LocalContext.current
+    val firestore = Firebase.firestore
+
+    var name by remember { mutableStateOf("Loading name...")  }
+    var bio by remember { mutableStateOf("Loading bio...") }
+    var avatarUri by remember { mutableStateOf("") }
+
+    //get user information
+    LaunchedEffect(uid) {
+        if (uid.isBlank()) {
+            Toast.makeText(
+                context,
+                "Couldn't open user Profile because it was blank",
+                Toast.LENGTH_SHORT
+            ).show()
+            onBack()
+        }
+
+        try {
+            val userDocRef = firestore.collection("users").document(uid)
+            val document = userDocRef.get().await()
+            val userProfile: UserProfile
+
+            if (document.exists()) {
+                userProfile = document.toObject<UserProfile>()!!
+                name = userProfile.name
+                bio = userProfile.bio
+                avatarUri = userProfile.profileImageUrl
+            } else {
+                Toast.makeText(
+                    context,
+                    "Couldn't open user Profile because user Profile doesn't exist",
+                    Toast.LENGTH_SHORT
+                ).show()
+                onBack()
+            }
+        } catch(e: Exception) {
+            Toast.makeText(
+                context,
+                "Couldn't open user Profile",
+                Toast.LENGTH_SHORT
+            ).show()
+            onBack()
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize()
@@ -71,7 +121,7 @@ fun OthersProfileScreen(
                         .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(uid)
+
                     // place holder for profile picture
                     Icon(
                         imageVector = Icons.Default.AccountCircle,
@@ -85,28 +135,21 @@ fun OthersProfileScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     // place holder for user name
                     Text(
-                        text = "Bob",
+                        text = name,
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold
                     )
                     // place holder for tags
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Text(
-                        text = "UW MADISON | CS | SENIOR",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+//                    Spacer(modifier = Modifier.height(24.dp))
+//                    Text(
+//                        text = "UW MADISON | CS | SENIOR",
+//                        style = MaterialTheme.typography.bodyMedium,
+//                        fontWeight = FontWeight.Bold
+//                    )
                     Spacer(modifier = Modifier.height(4.dp))
                     // place holder for bio
                     Text(
-                        text =
-                                "Clean and organized.\n" +
-                                "Enjoys gaming, simple cooking, \n" +
-                                "and quiet study \n" +
-                                "evenings. \n" +
-                                "Looking for a \n" +
-                                "respectful roommate \n" +
-                                "with a similar routine.",
+                        text = bio,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
