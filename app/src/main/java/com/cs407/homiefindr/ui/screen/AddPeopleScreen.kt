@@ -1,6 +1,14 @@
+// com/cs407/homiefindr/ui/screen/AddPeopleScreen.kt
 package com.cs407.homiefindr.ui.screen
 
+import android.content.ContentValues
+import android.graphics.Bitmap
+import android.net.Uri
+import android.provider.MediaStore
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,7 +16,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material3.Button
@@ -29,35 +39,57 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 
 @Composable
-fun AddPeopleScreen(clickBack: () -> Unit) {
-    var title by remember { mutableStateOf("") }
-    var content by remember { mutableStateOf("") }
+fun AddPeopleScreen(
+    clickBack: () -> Unit,
+    vm: AddPeopleViewModel = viewModel()
+) {
+    var name by remember { mutableStateOf("") }
+    var bio by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
     var leasePeriod by remember { mutableStateOf("") }
-    //TODO: images
-
+    var imageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
 
     val context = LocalContext.current
 
-    IconButton(
-        onClick = clickBack
-    ) {
-        Icon(
-            imageVector = Icons.Default.ArrowBackIosNew,
-            contentDescription = "Back Button"
-        )
-    }
+    val galleryLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+            if (uris != null) {
+                imageUris = imageUris + uris
+            }
+        }
+
+    val cameraLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
+            if (bitmap != null) {
+                val uri = saveBitmapToMediaStore(context, bitmap)
+                if (uri != null) {
+                    imageUris = imageUris + uri
+                }
+            }
+        }
 
     Box(
-        contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
+        IconButton(
+            onClick = clickBack,
+            modifier = Modifier.align(Alignment.TopStart)
+        ) {
+            Icon(
+                imageVector = Icons.Default.ArrowBackIosNew,
+                contentDescription = "Back Button"
+            )
+        }
+
         ElevatedCard(
             modifier = Modifier
+                .align(Alignment.Center)
                 .fillMaxWidth()
                 .wrapContentHeight(),
             shape = MaterialTheme.shapes.extraLarge,
@@ -72,88 +104,138 @@ fun AddPeopleScreen(clickBack: () -> Unit) {
                     .padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                //TODO: add images
+                Text("Photos:")
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    imageUris.forEach { uri ->
+                        AsyncImage(
+                            model = uri,
+                            contentDescription = "Selected image",
+                            modifier = Modifier.size(64.dp)
+                        )
+                    }
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(onClick = { galleryLauncher.launch("image/*") }) {
+                        Text("Gallery")
+                    }
+                    OutlinedButton(onClick = { cameraLauncher.launch(null) }) {
+                        Text("Camera")
+                    }
+                }
 
-                // Title input
-                Text("Name: ")
+                Text("Name:")
                 OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text( "Post title") },
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Your name") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
-
-                // content input
-                Text("Bio information: ")
+                Text("Bio information:")
                 OutlinedTextField(
-                    value = content,
-                    onValueChange = { content = it },
-                    label = { Text( "Post content") },
+                    value = bio,
+                    onValueChange = { bio = it },
+                    label = { Text("Short bio") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // price input
-                Text("Upper limit for price: ")
+                Text("Upper limit for price:")
                 OutlinedTextField(
                     value = price,
                     onValueChange = { input ->
-                        if (input.all { it.isDigit() }) { price = input }
+                        if (input.all { it.isDigit() }) price = input
                     },
-                    label = { Text( "Post price") },
+                    label = { Text("Max price") },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-                    )
-
-                // leasePeriod input
-                Text("Lease period")
+                Text("Lease period:")
                 OutlinedTextField(
                     value = leasePeriod,
                     onValueChange = { leasePeriod = it },
-                    label = { Text( "Post Lease Period") },
-
-                    )
-
+                    label = { Text("Lease period") },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    //cancel button
-                    OutlinedButton (
+                    OutlinedButton(
                         onClick = clickBack,
-                        enabled = true
+                        enabled = !vm.isSaving
                     ) {
-                        Text( "Cancel")
+                        Text("Cancel")
                     }
 
-                    //Post button
                     Button(
                         onClick = {
-                            if (title.isBlank() || content.isBlank() || price.isBlank() || leasePeriod.isBlank()) {
-                                // Display an error message if fields are empty
+                            if (name.isBlank() ||
+                                bio.isBlank() ||
+                                price.isBlank() ||
+                                leasePeriod.isBlank()
+                            ) {
                                 Toast.makeText(
                                     context,
                                     "Please fill all fields",
                                     Toast.LENGTH_SHORT
                                 ).show()
                             } else {
-                                // Post to database
-                                // TODO: update database
-                                clickBack()
+                                val maxPrice = price.toIntOrNull()
+                                vm.savePeoplePost(
+                                    name = name,
+                                    bio = bio,
+                                    maxPrice = maxPrice,
+                                    leasePeriod = leasePeriod,
+                                    imageUris = imageUris
+                                ) { ok ->
+                                    if (ok) {
+                                        clickBack()
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            vm.errorMessage ?: "Failed to post",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                }
                             }
                         },
-                        enabled = true
+                        enabled = !vm.isSaving
                     ) {
-                        Text("Post")
+                        Text(if (vm.isSaving) "Posting..." else "Post")
                     }
-
                 }
-
-
-
             }
         }
     }
+}
 
+private fun saveBitmapToMediaStore(
+    context: android.content.Context,
+    bitmap: Bitmap
+): Uri? {
+    val contentValues = ContentValues().apply {
+        put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+        put(
+            MediaStore.Images.Media.DISPLAY_NAME,
+            "homiefindr_people_${System.currentTimeMillis()}.jpg"
+        )
+    }
+    val resolver = context.contentResolver
+    val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+    if (uri != null) {
+        resolver.openOutputStream(uri)?.use { out ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+        }
+    }
+    return uri
 }
