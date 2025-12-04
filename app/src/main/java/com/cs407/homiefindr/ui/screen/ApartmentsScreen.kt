@@ -185,6 +185,7 @@ private fun ApartmentCard(post: ApartmentPost,
                     Text(text = post.content)
                 }
 
+
                 IconButton(
 
                     onClick =
