@@ -20,7 +20,9 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DatePicker
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,7 +42,17 @@ import androidx.compose.material3.TextButton
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DisplayMode
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.rememberDatePickerState
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeopleScreen( onClickPerson: () -> Unit, onClickAdd: () -> Unit) {
 
@@ -50,8 +62,11 @@ fun PeopleScreen( onClickPerson: () -> Unit, onClickAdd: () -> Unit) {
     var showFilterDialog by remember { mutableStateOf(false) }
     var minPrice by remember { mutableStateOf("") }
     var maxPrice by remember { mutableStateOf("") }
-    var leaseStartDate by remember { mutableStateOf("") }
-    var leaseEndDate by remember { mutableStateOf("") }
+    var leaseStartDateMillis by remember { mutableStateOf<Long?>(null) }
+    var leaseEndDateMillis by remember { mutableStateOf<Long?>(null) }
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
+    var dateRangeError by remember { mutableStateOf(false) }
     var forMale by remember { mutableStateOf(false) }
     var forFemale by remember { mutableStateOf(false) }
     var petsAllowed by remember { mutableStateOf(false) }
@@ -216,28 +231,63 @@ fun PeopleScreen( onClickPerson: () -> Unit, onClickAdd: () -> Unit) {
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                         )
                     }
+                    Text("Lease Period", fontSize = 16.sp)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedTextField(
-                            value = leaseStartDate,
-                            onValueChange = { leaseStartDate = it },
-                            label = { Text("Starts") },
-                            modifier = Modifier.weight(1f),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number) // TODO: date picker
-                        )
-                        OutlinedTextField(
-                            value = leaseEndDate,
-                            onValueChange = { leaseEndDate = it },
-                            label = { Text("Ends") },
-                            modifier = Modifier.weight(1f),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                        )
+                        Box(modifier = Modifier.weight(1f)) {
+                            OutlinedTextField(
+                                value = leaseStartDateMillis?.toFormattedDateString() ?: "",
+                                onValueChange = { /* Do nothing */ },
+                                label = { Text("Starts") },
+                                readOnly = true,
+                                isError = dateRangeError,
+                                supportingText = {
+                                    if (dateRangeError) {
+                                        Text(
+                                            text = "Start date must be before end date",
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
+                            )
+                            // clickable to show date picker
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .clickable { showStartDatePicker = true }
+                            )
+                        }
+                        Box(modifier = Modifier.weight(1f)) {
+                            OutlinedTextField(
+                                value = leaseEndDateMillis?.toFormattedDateString() ?: "",
+                                onValueChange = { /* Do nothing */ },
+                                label = { Text("Ends") },
+                                readOnly = true,
+                                isError = dateRangeError,
+                                supportingText = {
+                                    if (dateRangeError) {
+                                        Text(
+                                            text = "End date must be after start date",
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
+
+                            )
+                            // clickable to show date picker
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .clickable { showEndDatePicker = true }
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    Text("Open for:", fontSize = 16.sp)
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -245,7 +295,7 @@ fun PeopleScreen( onClickPerson: () -> Unit, onClickAdd: () -> Unit) {
                             checked = petsAllowed,
                             onCheckedChange = { petsAllowed = it }
                         )
-                        Text("Pets Allowed")
+                        Text("Pets")
                     }
                     Row(
                         verticalAlignment = Alignment.CenterVertically
@@ -266,8 +316,17 @@ fun PeopleScreen( onClickPerson: () -> Unit, onClickAdd: () -> Unit) {
             confirmButton = {
                 TextButton(
                     onClick = {
-                        // TODO: filter logic with state variables
-                        showFilterDialog = false
+                        val startDate = leaseStartDateMillis
+                        val endDate = leaseEndDateMillis
+                        val invalidDate = startDate != null && endDate != null && endDate < startDate
+                        if (invalidDate) {
+                            dateRangeError = true
+                            return@TextButton
+                        } else {
+                            dateRangeError = false
+                            // TODO: filter logic with state variables
+                            showFilterDialog = false
+                        }
                     }
                 ) {
                     Text("Apply")
@@ -284,6 +343,66 @@ fun PeopleScreen( onClickPerson: () -> Unit, onClickAdd: () -> Unit) {
             }
         )
     }
+    if (showStartDatePicker) {
+        val datePickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { showStartDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        leaseStartDateMillis = datePickerState.selectedDateMillis
+                        showStartDatePicker = false
+                    }
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showStartDatePicker = false
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+    if (showEndDatePicker) {
+        val datePickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { showEndDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        leaseEndDateMillis = datePickerState.selectedDateMillis
+                        showEndDatePicker = false
+                    }
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showEndDatePicker = false
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+}
+
+private fun Long.toFormattedDateString(): String {
+    val date = java.util.Date(this)
+    val format = java.text.SimpleDateFormat("MM-dd-yyyy", java.util.Locale.getDefault())
+    return format.format(date)
 }
 
 //@Preview
