@@ -14,11 +14,13 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import java.time.Instant
+import com.google.firebase.firestore.ListenerRegistration
 
 data class Conversation(
     val id: String,
     val title: String,
     val lastMsg: String,
+    val otherUserId: String,
     val time: Instant = Instant.now()
 )
 
@@ -31,8 +33,9 @@ fun MessagesListScreen(
     val db = remember { Firebase.firestore }
     // 当前登录用户 uid
     val currentUserId = Firebase.auth.currentUser?.uid ?: ""
-
+    var nameCache by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var conversations by remember { mutableStateOf<List<Conversation>>(emptyList()) }
+    val profileListeners = remember { mutableMapOf<String, ListenerRegistration>() }
     var error by remember { mutableStateOf<String?>(null) }
 
     // ---------- 2. listen ----------
@@ -52,14 +55,40 @@ fun MessagesListScreen(
 
                     if (snapshot != null) {
                         println("DEBUG listener size = ${snapshot.size()}")
-                        conversations = snapshot.documents.map { doc ->
-                            doc.toConversation()
+
+                        val newConversations = snapshot.documents
+                            .map { doc -> doc.toConversation(currentUserId) }
+                            .sortedByDescending { it.time } // 可选：按时间倒序
+
+                        conversations = newConversations
+
+                        newConversations.forEach { conv ->
+                            val otherId = conv.otherUserId
+                            if (otherId.isNotBlank() && !profileListeners.containsKey(otherId)) {
+                                val reg = db.collection("profiles")
+                                    .document(otherId)
+                                    .addSnapshotListener { snap, e ->
+                                        if (e != null) return@addSnapshotListener
+                                        if (snap != null && snap.exists()) {
+                                            val name = snap.getString("name") ?: "User"
+                                            // 更新 nameCache，驱动 UI 刷新
+                                            nameCache = nameCache.toMutableMap().apply {
+                                                put(otherId, name)
+                                            }
+                                        }
+                                    }
+
+                                profileListeners[otherId] = reg
+                            }
                         }
+
                     }
                 }
 
             onDispose {
                 registration.remove()
+                profileListeners.values.forEach { it.remove() }
+                profileListeners.clear()
             }
         }
     }
@@ -102,6 +131,9 @@ fun MessagesListScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(conversations) { c ->
+
+                val displayTitle = nameCache[c.otherUserId] ?: c.title
+
                 Surface(
                     shape = MaterialTheme.shapes.medium,
                     tonalElevation = 1.dp,
@@ -110,7 +142,7 @@ fun MessagesListScreen(
                         .clickable { onOpenChat(c.id) }
                 ) {
                     Column(Modifier.padding(12.dp)) {
-                        Text(c.title, style = MaterialTheme.typography.titleMedium)
+                        Text(displayTitle, style = MaterialTheme.typography.titleMedium)
                         Spacer(Modifier.height(4.dp))
                         Text(c.lastMsg, maxLines = 1)
                     }
@@ -121,17 +153,26 @@ fun MessagesListScreen(
 }
 
 // ---------- Firestore Document -> Conversation ----------
-private fun DocumentSnapshot.toConversation(): Conversation {
+private fun DocumentSnapshot.toConversation(currentUserId: String): Conversation {
     val id = this.id
-    val title = getString("title") ?: "Chat"
+    //val title = getString("title") ?: "Chat"
     val lastMsg = getString("lastMsg") ?: ""
     val ts: Timestamp? = getTimestamp("updatedAt")
     val instant = ts?.toDate()?.toInstant() ?: Instant.EPOCH
 
+    val members = get("members") as? List<*> ?: emptyList<Any>()
+    val otherUserId = members
+        .mapNotNull { it as? String }
+        .firstOrNull { it != currentUserId }
+        .orEmpty()
+
+    val fallbackTitle = otherUserId.ifBlank { "Chat" }
+
     return Conversation(
         id = id,
-        title = title,
+        title = fallbackTitle,
         lastMsg = lastMsg,
+        otherUserId = otherUserId,
         time = instant
     )
 }
