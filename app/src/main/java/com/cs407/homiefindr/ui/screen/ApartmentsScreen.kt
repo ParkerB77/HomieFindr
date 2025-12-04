@@ -1,6 +1,5 @@
 package com.cs407.homiefindr.ui.screen
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,22 +9,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,13 +28,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
 import com.cs407.homiefindr.data.model.ApartmentPost
-import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun ApartmentsScreen(
@@ -48,11 +40,10 @@ fun ApartmentsScreen(
 ) {
     val state = vm.uiState
     val posts = state.posts
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
 
     var search: String by remember { mutableStateOf("") }
-    var galleryImages by remember { mutableStateOf<List<String>?>(null) }
 
+    // simple local search filter
     val filteredPosts =
         if (search.isBlank()) posts
         else posts.filter {
@@ -65,6 +56,7 @@ fun ApartmentsScreen(
         modifier = Modifier.fillMaxSize()
     ) {
 
+        // Top row with search bar + filter button (same as you had)
         Row(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -90,25 +82,17 @@ fun ApartmentsScreen(
             }
         }
 
+
+        // List of posts (replaces hard-coded ids, keeps your card layout style)
         LazyColumn(
             modifier = Modifier
                 .padding(top = 100.dp, bottom = 100.dp, start = 16.dp, end = 16.dp)
         ) {
             items(filteredPosts) { post ->
-                val canDelete = currentUserId != null && post.ownerId == currentUserId
-                ApartmentCard(
-                    post = post,
-                    canDelete = canDelete,
-                    onDelete = { vm.deletePost(post.id) },
-                    onImageClick = {
-                        if (post.imageUrls.isNotEmpty()) {
-                            galleryImages = post.imageUrls
-                        }
-                    }
-                )
+                ApartmentCard(post = post)
             }
         }
-
+        // The + add button (bottom-right, same position)
         IconButton(
             onClick = onClickAdd,
             modifier = Modifier
@@ -122,40 +106,11 @@ fun ApartmentsScreen(
             )
         }
 
-        galleryImages?.let { images ->
-            AlertDialog(
-                onDismissRequest = { galleryImages = null },
-                confirmButton = {
-                    TextButton(onClick = { galleryImages = null }) {
-                        Text("Close")
-                    }
-                },
-                title = { Text("Photos") },
-                text = {
-                    LazyRow {
-                        items(images) { url ->
-                            AsyncImage(
-                                model = url,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(200.dp)
-                                    .padding(4.dp)
-                            )
-                        }
-                    }
-                }
-            )
-        }
     }
 }
 
 @Composable
-private fun ApartmentCard(
-    post: ApartmentPost,
-    canDelete: Boolean,
-    onDelete: () -> Unit,
-    onImageClick: () -> Unit
-) {
+private fun ApartmentCard(post: ApartmentPost) {
     var isSaved by remember { mutableStateOf(true) }
 
     ElevatedCard(
@@ -163,71 +118,51 @@ private fun ApartmentCard(
             .fillMaxWidth()
             .padding(vertical = 4.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp)
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start
+            // Apartment picture + save button (same structure as before)
+            Box(
+                modifier = Modifier.size(90.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(90.dp)
-                        .clickable(enabled = post.imageUrls.isNotEmpty()) { onImageClick() }
+                Icon(
+                    imageVector = Icons.Default.Home,
+                    contentDescription = "Apartment",
+                    modifier = Modifier.size(90.dp)
+                )
+
+                IconButton(
+                    onClick = {
+                        // TODO: toggle save in database if you want
+                        isSaved = !isSaved
+                    },
+                    modifier = Modifier.align(Alignment.TopEnd)
                 ) {
-                    if (post.imageUrls.isNotEmpty()) {
-                        AsyncImage(
-                            model = post.imageUrls.first(),
-                            contentDescription = "Apartment image",
-                            modifier = Modifier.size(90.dp)
+                    if (isSaved) {
+                        Icon(
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = "Saved"
                         )
                     } else {
                         Icon(
-                            imageVector = Icons.Default.Home,
-                            contentDescription = "Apartment",
-                            modifier = Modifier.size(90.dp)
+                            imageVector = Icons.Default.FavoriteBorder,
+                            contentDescription = "Not saved"
                         )
                     }
-                }
-
-                Column(
-                    modifier = Modifier
-                        .padding(start = 8.dp)
-                        .fillMaxWidth()
-                ) {
-                    Text(text = post.title, fontSize = 18.sp)
-                    Text(text = post.leasePeriod)
-                    Text(text = "$${post.price}")
-                    Text(text = post.content)
                 }
             }
 
-            // bottom-right row with delete (if allowed) and favorite button
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
+            // Apartment information (using real data now)
+            Column(
+                modifier = Modifier.fillMaxWidth()
             ) {
-                if (canDelete) {
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete post",
-                            tint = Color.Red
-                        )
-                    }
-                }
-
-                IconButton(onClick = { isSaved = !isSaved }) {
-                    Icon(
-                        imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = "Saved"
-                    )
-                }
+                Text(text = post.title, fontSize = 18.sp)
+                Text(text = post.leasePeriod)
+                Text(text = "$${post.price}")
+                Text(text = post.content)
             }
         }
     }

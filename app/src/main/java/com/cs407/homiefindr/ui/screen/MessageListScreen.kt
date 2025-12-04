@@ -35,40 +35,6 @@ fun MessagesListScreen(
     var conversations by remember { mutableStateOf<List<Conversation>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    // ---------- 1. use code to do the test ----------
-    LaunchedEffect(Unit) {
-        if (currentUserId.isBlank()) return@LaunchedEffect
-
-        val otherUserId = "tmaJ5Ej4UJVmRdstU2ukPscLmD62"
-
-        val testDocRef = db.collection("conversations").document("testChatFromApp")
-
-        testDocRef.get()
-            .addOnSuccessListener { snap ->
-
-                if (!snap.exists()) {
-                    val data = mapOf(
-                        "title" to "Test chat",
-                        "lastMsg" to "Hello from app",
-                        "members" to listOf(currentUserId, otherUserId),
-                        "updatedAt" to Timestamp.now()
-                    )
-                    testDocRef.set(data)
-                        .addOnSuccessListener {
-                            println("DEBUG created testChatFromApp")
-                        }
-                        .addOnFailureListener { e ->
-                            println("DEBUG failed to create test chat: ${e.message}")
-                        }
-                } else {
-                    println("DEBUG testChatFromApp already exists")
-                }
-            }
-            .addOnFailureListener { e ->
-                println("DEBUG init error: ${e.message}")
-            }
-    }
-
     // ---------- 2. listen ----------
     DisposableEffect(currentUserId) {
         if (currentUserId.isBlank()) {

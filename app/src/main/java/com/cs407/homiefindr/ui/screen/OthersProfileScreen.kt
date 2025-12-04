@@ -1,5 +1,6 @@
 package com.cs407.homiefindr.ui.screen
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,19 +19,37 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 
 @Composable
-fun OthersProfileScreen(modifier: Modifier = Modifier) {
+fun OthersProfileScreen(
+    modifier: Modifier = Modifier,
+    uid: String,
+    onBack: () -> Unit,
+    onOpenChat: (String) -> Unit,
+    vm: OtherProfileViewModel = viewModel()
+) {
+//    val state = vm.uiState
+    val db = remember { Firebase.firestore }
+    val currentUser = Firebase.auth.currentUser?.uid ?: ""
+    val context = LocalContext.current
+
     Scaffold(
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
@@ -52,6 +71,7 @@ fun OthersProfileScreen(modifier: Modifier = Modifier) {
                         .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    Text(uid)
                     // place holder for profile picture
                     Icon(
                         imageVector = Icons.Default.AccountCircle,
@@ -91,38 +111,68 @@ fun OthersProfileScreen(modifier: Modifier = Modifier) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    FloatingActionButton(
-                        onClick = {
-                        }
-                    ) {
+
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.FavoriteBorder,
-                                contentDescription = "Favorite",
-                            )
+                            IconButton( onClick = {
+                                // TODO:
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.FavoriteBorder,
+                                    contentDescription = "Favorite",
+                                )
+                            }
+
                             Spacer(Modifier.width(16.dp))
-                            Icon(
-                                imageVector = Icons.Default.Send,
-                                contentDescription = "Message",
-                            )
-                            Spacer(Modifier.width(16.dp))
-                            Icon(
-                                imageVector = Icons.Default.Share,
-                                contentDescription = "Share",
-                            )
+                            IconButton(onClick = {
+                                // TODO: message
+                                try {
+                                    startOrGetConversation(
+                                        db = db,
+                                        currentUserId = currentUser,
+                                        otherUserId = uid,
+                                        onResult = {onOpenChat} ,
+                                        onError = {onBack}
+                                    )
+
+                                    Toast.makeText(
+                                        context,
+                                        "Successfully made chat",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                } catch(e: Exception) {
+                                    Toast.makeText(
+                                        context,
+                                        "Couldn't open chat",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+
+
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.Send,
+                                    contentDescription = "Message",
+                                )
+                            }
+
+//                            Spacer(Modifier.width(16.dp))
+//                            Icon(
+//                                imageVector = Icons.Default.Share,
+//                                contentDescription = "Share",
+//                            )
                     }
-                    }
+
                 }
             }
         }
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun OthersProfileScreenPreview() {
-    OthersProfileScreen()
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun OthersProfileScreenPreview() {
+//    OthersProfileScreen()
+//}
