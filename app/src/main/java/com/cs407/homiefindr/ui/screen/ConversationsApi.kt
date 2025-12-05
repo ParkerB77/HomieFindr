@@ -15,6 +15,7 @@ fun startOrGetConversation(
     db: FirebaseFirestore,
     currentUserId: String,
     otherUserId: String,
+    otherUserName: String? = null,
     onResult: (String) -> Unit,
     onError: (String) -> Unit = {}
 ) {
@@ -26,13 +27,16 @@ fun startOrGetConversation(
     val chatId = oneToOneChatId(currentUserId, otherUserId)
     val convoRef = db.collection("conversations").document(chatId)
 
-    val data = mapOf(
-        "title" to "Chat",
-        // Use `arrayUnion` to ensure both uids are present in `members`.
+    val data = mutableMapOf<String, Any>(
         "members" to FieldValue.arrayUnion(currentUserId, otherUserId),
         "lastMsg" to "",
         "updatedAt" to Timestamp.now()
     )
+
+    if (!otherUserName.isNullOrBlank()) {
+        data["title"] = otherUserName
+    }
+
 
     // merge = true: Update if already exists; create if not found.
     convoRef.set(data, SetOptions.merge())

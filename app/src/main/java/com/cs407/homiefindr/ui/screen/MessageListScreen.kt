@@ -11,10 +11,10 @@ import androidx.compose.ui.unit.dp
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import java.time.Instant
-import com.google.firebase.firestore.ListenerRegistration
 
 data class Conversation(
     val id: String,
@@ -29,16 +29,15 @@ data class Conversation(
 fun MessagesListScreen(
     onOpenChat: (String) -> Unit
 ) {
-    // Firestore 实例
     val db = remember { Firebase.firestore }
-    // 当前登录用户 uid
     val currentUserId = Firebase.auth.currentUser?.uid ?: ""
+
     var nameCache by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var conversations by remember { mutableStateOf<List<Conversation>>(emptyList()) }
     val profileListeners = remember { mutableMapOf<String, ListenerRegistration>() }
     var error by remember { mutableStateOf<String?>(null) }
 
-    // ---------- 2. listen ----------
+    // 监听 conversations
     DisposableEffect(currentUserId) {
         if (currentUserId.isBlank()) {
             error = "Not signed in"
@@ -55,23 +54,25 @@ fun MessagesListScreen(
 
                     if (snapshot != null) {
                         println("DEBUG listener size = ${snapshot.size()}")
-
                         val newConversations = snapshot.documents
                             .map { doc -> doc.toConversation(currentUserId) }
-                            .sortedByDescending { it.time } // 可选：按时间倒序
+                            .sortedByDescending { it.time }
 
                         conversations = newConversations
 
                         newConversations.forEach { conv ->
                             val otherId = conv.otherUserId
                             if (otherId.isNotBlank() && !profileListeners.containsKey(otherId)) {
-                                val reg = db.collection("profiles")
+
+                                val reg = db.collection("users")
                                     .document(otherId)
-                                    .addSnapshotListener { snap, e ->
-                                        if (e != null) return@addSnapshotListener
+                                    .addSnapshotListener { snap, e2 ->
+                                        if (e2 != null) return@addSnapshotListener
                                         if (snap != null && snap.exists()) {
-                                            val name = snap.getString("name") ?: "User"
-                                            // 更新 nameCache，驱动 UI 刷新
+                                            val raw = snap.getString("name")
+                                            // 优先用 users 里的 name，没有就用 uid
+                                            val name = raw?.takeIf { it.isNotBlank() } ?: otherId
+
                                             nameCache = nameCache.toMutableMap().apply {
                                                 put(otherId, name)
                                             }
@@ -81,7 +82,6 @@ fun MessagesListScreen(
                                 profileListeners[otherId] = reg
                             }
                         }
-
                     }
                 }
 
@@ -93,21 +93,21 @@ fun MessagesListScreen(
         }
     }
 
-    // --------------------- UI ---------------------
+    // UI
     Column(Modifier.fillMaxSize()) {
         CenterAlignedTopAppBar(title = { Text("Messages") })
 
-        // Debug
-        Text(
-            text = "uid = $currentUserId",
-            modifier = Modifier.padding(8.dp),
-            style = MaterialTheme.typography.bodySmall
-        )
-        Text(
-            text = "convs = ${conversations.size}",
-            modifier = Modifier.padding(horizontal = 8.dp),
-            style = MaterialTheme.typography.bodySmall
-        )
+//        Text(
+//            text = "uid = $currentUserId",
+//            modifier = Modifier.padding(8.dp),
+//            style = MaterialTheme.typography.bodySmall
+//        )
+//        Text(
+//            text = "convs = ${conversations.size}",
+//            modifier = Modifier.padding(horizontal = 8.dp),
+//            style = MaterialTheme.typography.bodySmall
+//        )
+
         if (error != null) {
             Text(
                 text = error ?: "",
@@ -127,11 +127,13 @@ fun MessagesListScreen(
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(8.dp),
+            contentPadding = PaddingValues( top = 8.dp,
+                bottom = 100.dp,
+                start = 8.dp,
+                end = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(conversations) { c ->
-
                 val displayTitle = nameCache[c.otherUserId] ?: c.title
 
                 Surface(
@@ -152,10 +154,9 @@ fun MessagesListScreen(
     }
 }
 
-// ---------- Firestore Document -> Conversation ----------
+// Firestore Document -> Conversation
 private fun DocumentSnapshot.toConversation(currentUserId: String): Conversation {
     val id = this.id
-    //val title = getString("title") ?: "Chat"
     val lastMsg = getString("lastMsg") ?: ""
     val ts: Timestamp? = getTimestamp("updatedAt")
     val instant = ts?.toDate()?.toInstant() ?: Instant.EPOCH
@@ -166,7 +167,12 @@ private fun DocumentSnapshot.toConversation(currentUserId: String): Conversation
         .firstOrNull { it != currentUserId }
         .orEmpty()
 
-    val fallbackTitle = otherUserId.ifBlank { "Chat" }
+    val storedTitle = getString("title")
+    val fallbackTitle = when {
+        !storedTitle.isNullOrBlank() -> storedTitle
+        otherUserId.isNotBlank()     -> otherUserId
+        else                         -> "Chat"
+    }
 
     return Conversation(
         id = id,

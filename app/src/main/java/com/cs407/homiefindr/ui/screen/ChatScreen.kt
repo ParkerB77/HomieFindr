@@ -97,18 +97,17 @@ fun ChatScreen(
                 }
             }
     }
-
     DisposableEffect(otherUserId) {
         if (otherUserId.isBlank()) {
             onDispose { }
         } else {
-            val reg = db.collection("profiles")
+            val reg = db.collection("users")
                 .document(otherUserId)
                 .addSnapshotListener { snap, e ->
                     if (e != null) return@addSnapshotListener
                     if (snap != null && snap.exists()) {
                         val name = snap.getString("name") ?: otherUserId
-                        chatTitle = name          // 对方一改名，这里就会收到更新
+                        chatTitle = name
                     }
                 }
 
@@ -119,7 +118,7 @@ fun ChatScreen(
     }
 
 
-    // auto-scroll to bottom when new messages arrive
+        // auto-scroll to bottom when new messages arrive
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
             listState.animateScrollToItem(messages.lastIndex)
