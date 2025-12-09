@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
@@ -136,10 +135,6 @@ fun OthersProfileScreen(
                         )
                     }
 
-//                    Text(
-//                        text = "pfp ph",
-//                        style = MaterialTheme.typography.displayLarge
-//                    )
                     Spacer(modifier = Modifier.height(16.dp))
                     // place holder for user name
                     Text(
@@ -148,12 +143,6 @@ fun OthersProfileScreen(
                         fontWeight = FontWeight.Bold
                     )
                     // place holder for tags
-//                    Spacer(modifier = Modifier.height(24.dp))
-//                    Text(
-//                        text = "UW MADISON | CS | SENIOR",
-//                        style = MaterialTheme.typography.bodyMedium,
-//                        fontWeight = FontWeight.Bold
-//                    )
                     Spacer(modifier = Modifier.height(4.dp))
                     // place holder for bio
                     Text(
@@ -167,14 +156,6 @@ fun OthersProfileScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            IconButton( onClick = {
-                                // TODO:
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Default.FavoriteBorder,
-                                    contentDescription = "Favorite",
-                                )
-                            }
 
                             Spacer(Modifier.width(16.dp))
                             IconButton(onClick = {
@@ -204,12 +185,6 @@ fun OthersProfileScreen(
                                     contentDescription = "Message",
                                 )
                             }
-
-//                            Spacer(Modifier.width(16.dp))
-//                            Icon(
-//                                imageVector = Icons.Default.Share,
-//                                contentDescription = "Share",
-//                            )
                     }
 
                 }

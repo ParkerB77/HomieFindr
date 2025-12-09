@@ -22,28 +22,24 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AttachMoney
-import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.FilterAlt
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,7 +51,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -65,6 +60,18 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import androidx.compose.material3.SearchBar
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DisplayMode
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.rememberDatePickerState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -72,7 +79,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeopleScreen(
-    onClickPerson: (otherUserId: String, otherName: String) -> Unit,
+    onClickPerson: (otherUserId: String) -> Unit,
     onMessage: (otherUserId: String, otherName: String) -> Unit,
     onClickAdd: () -> Unit,
     vm: PeopleViewModel = viewModel()
@@ -92,8 +99,7 @@ fun PeopleScreen(
             it.title.contains(search, ignoreCase = true) ||
                     it.bio.contains(search, ignoreCase = true)
         }
-
-    // filter state
+    // for filtering
     var showFilterDialog by remember { mutableStateOf(false) }
     var minPrice by remember { mutableStateOf("") }
     var maxPrice by remember { mutableStateOf("") }
@@ -106,7 +112,7 @@ fun PeopleScreen(
     var forMale by remember { mutableStateOf(false) }
     var forFemale by remember { mutableStateOf(false) }
     var petsAllowed by remember { mutableStateOf(false) }
-
+    // rest of the filter options ....
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -210,8 +216,6 @@ fun PeopleScreen(
             )
         }
     }
-
-    // filter dialog
     if (showFilterDialog) {
         AlertDialog(
             onDismissRequest = {
@@ -221,6 +225,7 @@ fun PeopleScreen(
                 Text(text = "FilterOptions")
             },
             text = {
+                // Content of the dialog
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -283,6 +288,7 @@ fun PeopleScreen(
                                     }
                                 }
                             )
+                            // clickable to show date picker
                             Box(
                                 modifier = Modifier
                                     .matchParentSize()
@@ -306,6 +312,7 @@ fun PeopleScreen(
                                 }
 
                             )
+                            // clickable to show date picker
                             Box(
                                 modifier = Modifier
                                     .matchParentSize()
@@ -345,17 +352,26 @@ fun PeopleScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        val minPriceInt = minPrice.toIntOrNull()
-                        val maxPriceInt = maxPrice.toIntOrNull()
-                        val invalidPrice =
-                            minPriceInt != null && maxPriceInt != null && maxPriceInt < minPriceInt
+                        val minPrice = minPrice.toIntOrNull()
+                        val maxPrice = maxPrice.toIntOrNull()
+                        val invalidPrice = minPrice != null && maxPrice != null && maxPrice < minPrice
                         val startDate = leaseStartDateMillis
                         val endDate = leaseEndDateMillis
-                        val invalidDate =
-                            startDate != null && endDate != null && endDate < startDate
-                        priceRangeError = invalidPrice
-                        dateRangeError = invalidDate
+                        val invalidDate = startDate != null && endDate != null && endDate < startDate
+                        if (invalidPrice) {
+                            priceRangeError = true
+                        } else {
+                            priceRangeError = false
+                        }
+                        if (invalidDate) {
+                            dateRangeError = true
+                        } else {
+                            dateRangeError = false
+                        }
                         if (!invalidPrice && !invalidDate) {
+                            priceRangeError = false
+                            dateRangeError = false
+                            // TODO: filter logic with state variables
                             showFilterDialog = false
                         }
                     }
@@ -374,8 +390,6 @@ fun PeopleScreen(
             }
         )
     }
-
-    // date pickers
     if (showStartDatePicker) {
         val datePickerState = rememberDatePickerState()
         DatePickerDialog(
@@ -439,26 +453,14 @@ private fun PersonCard(
     currentUser: String,
     onShowImages: (List<String>) -> Unit,
     onShowToast: (String) -> Unit,
-    onClickPerson: (otherUserId: String, otherName: String) -> Unit,
+    onClickPerson: (otherUserId: String) -> Unit,
     onMessage: (otherUserId: String, otherName: String) -> Unit,
     onDeleted: (String) -> Unit
 ) {
+    // START AS NOT SAVED
     var isSaved by remember { mutableStateOf(false) }
     val canDelete = post.creatorId == currentUser
-
-    // Initialize favorite state from Firestore
-    LaunchedEffect(post.postId, currentUser) {
-        if (currentUser.isNotBlank()) {
-            db.collection("users")
-                .document(currentUser)
-                .collection("favoritePeoplePosts")
-                .document(post.postId)
-                .get()
-                .addOnSuccessListener { snap ->
-                    isSaved = snap.exists()
-                }
-        }
-    }
+    val context = LocalContext
 
     val leaseText: String = when {
         !post.leaseStartDate.isNullOrBlank() && !post.leaseEndDate.isNullOrBlank() ->
@@ -533,7 +535,8 @@ private fun PersonCard(
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable {
-                            onClickPerson(post.creatorId, post.title)
+                            val displayName = post.title
+                            onClickPerson(post.creatorId)
                         }
                     )
                 }
@@ -575,7 +578,7 @@ private fun PersonCard(
                 }
             }
 
-            // action row: delete (if owner) + save + chat
+            // action row: delete (if owner) + save
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -590,7 +593,7 @@ private fun PersonCard(
                                 .document(post.postId)
                                 .delete()
                                 .addOnSuccessListener {
-                                    onDeleted(post.postId)
+                                    onDeleted(post.postId)      // remove from UI state
                                     onShowToast("Deleted")
                                 }
                                 .addOnFailureListener {
@@ -606,37 +609,9 @@ private fun PersonCard(
                     }
                 }
 
-                // like / favorite button
                 IconButton(onClick = {
-                    if (currentUser.isBlank()) {
-                        onShowToast("Please log in to save")
-                        return@IconButton
-                    }
-
-                    val favDoc = db.collection("users")
-                        .document(currentUser)
-                        .collection("favoritePeoplePosts")
-                        .document(post.postId)
-
-                    if (!isSaved) {
-                        favDoc.set(post)
-                            .addOnSuccessListener {
-                                isSaved = true
-                                onShowToast("Saved")
-                            }
-                            .addOnFailureListener {
-                                onShowToast("Save failed")
-                            }
-                    } else {
-                        favDoc.delete()
-                            .addOnSuccessListener {
-                                isSaved = false
-                                onShowToast("Removed from saved")
-                            }
-                            .addOnFailureListener {
-                                onShowToast("Remove failed")
-                            }
-                    }
+                    isSaved = !isSaved
+                    onShowToast(if (isSaved) "Saved" else "Removed from saved")
                 }) {
                     Icon(
                         imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
@@ -644,10 +619,23 @@ private fun PersonCard(
                     )
                 }
 
-                // message button → opens direct chat
+                // message button
                 IconButton(
                     onClick = {
-                        onMessage(post.creatorId, post.title)
+                        startOrGetConversation(
+                            db = db,
+                            currentUserId = currentUser,
+                            otherUserId = post.creatorId,
+                            onResult = { onMessage(post.creatorId, post.title) },
+                            onError = {
+//                                Toast.makeText(
+//                                    context,
+//                                    "Couldn't open chat",
+//                                    Toast.LENGTH_SHORT
+//                                ).show()
+                            }
+                        )
+
                     }
                 ) {
                     Icon(
@@ -661,7 +649,7 @@ private fun PersonCard(
 }
 
 private fun Long.toFormattedDateString(): String {
-    val date = Date(this)
-    val format = SimpleDateFormat("MM-dd-yyyy", Locale.getDefault())
+    val date = java.util.Date(this)
+    val format = java.text.SimpleDateFormat("MM-dd-yyyy", java.util.Locale.getDefault())
     return format.format(date)
 }
