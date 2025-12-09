@@ -1,6 +1,7 @@
 package com.cs407.homiefindr.ui.screen
 
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.DateRange
@@ -158,7 +160,8 @@ fun ApartmentsScreen(
             onClick = onClickAdd,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(bottom = 110.dp, end = 16.dp)
+                .padding(bottom = 150.dp, end = 16.dp)
+                .background(color = Color.White)
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
