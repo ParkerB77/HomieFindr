@@ -79,7 +79,8 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeopleScreen(
-    onClickPerson: (otherUserId: String, otherName: String) -> Unit,
+    onClickPerson: (otherUserId: String) -> Unit,
+    onMessage: (otherUserId: String, otherName: String) -> Unit,
     onClickAdd: () -> Unit,
     vm: PeopleViewModel = viewModel()
 ) {
@@ -155,6 +156,7 @@ fun PeopleScreen(
                         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                     },
                     onClickPerson = onClickPerson,
+                    onMessage = onMessage,
                     onDeleted = { deletedId ->
                         vm.removePostFromState(deletedId)
                     }
@@ -451,7 +453,8 @@ private fun PersonCard(
     currentUser: String,
     onShowImages: (List<String>) -> Unit,
     onShowToast: (String) -> Unit,
-    onClickPerson: (otherUserId: String, otherName: String) -> Unit,
+    onClickPerson: (otherUserId: String) -> Unit,
+    onMessage: (otherUserId: String, otherName: String) -> Unit,
     onDeleted: (String) -> Unit
 ) {
     // START AS NOT SAVED
@@ -533,7 +536,7 @@ private fun PersonCard(
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable {
                             val displayName = post.title
-                            onClickPerson(post.creatorId, displayName)
+                            onClickPerson(post.creatorId)
                         }
                     )
                 }
@@ -623,7 +626,7 @@ private fun PersonCard(
                             db = db,
                             currentUserId = currentUser,
                             otherUserId = post.creatorId,
-                            onResult = onClickPerson,
+                            onResult = { onMessage(post.creatorId, post.title) },
                             onError = {
 //                                Toast.makeText(
 //                                    context,
