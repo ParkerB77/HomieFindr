@@ -30,7 +30,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -60,18 +59,11 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import androidx.compose.material3.SearchBar
-import androidx.compose.material3.TextButton
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.ChatBubble
-import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DisplayMode
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.ui.text.input.KeyboardType
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -79,7 +71,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeopleScreen(
-    onClickPerson: (otherUserId: String) -> Unit,
+    onClickPerson: (otherUserId: String, otherName: String) -> Unit,
     onMessage: (otherUserId: String, otherName: String) -> Unit,
     onClickAdd: () -> Unit,
     vm: PeopleViewModel = viewModel()
@@ -453,14 +445,13 @@ private fun PersonCard(
     currentUser: String,
     onShowImages: (List<String>) -> Unit,
     onShowToast: (String) -> Unit,
-    onClickPerson: (otherUserId: String) -> Unit,
+    onClickPerson: (otherUserId: String, otherName: String) -> Unit,
     onMessage: (otherUserId: String, otherName: String) -> Unit,
     onDeleted: (String) -> Unit
 ) {
     // START AS NOT SAVED
     var isSaved by remember { mutableStateOf(false) }
     val canDelete = post.creatorId == currentUser
-    val context = LocalContext
 
     val leaseText: String = when {
         !post.leaseStartDate.isNullOrBlank() && !post.leaseEndDate.isNullOrBlank() ->
@@ -535,8 +526,7 @@ private fun PersonCard(
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable {
-                            val displayName = post.title
-                            onClickPerson(post.creatorId)
+                            onClickPerson(post.creatorId, post.title)
                         }
                     )
                 }
@@ -593,7 +583,7 @@ private fun PersonCard(
                                 .document(post.postId)
                                 .delete()
                                 .addOnSuccessListener {
-                                    onDeleted(post.postId)      // remove from UI state
+                                    onDeleted(post.postId)
                                     onShowToast("Deleted")
                                 }
                                 .addOnFailureListener {
@@ -622,20 +612,7 @@ private fun PersonCard(
                 // message button
                 IconButton(
                     onClick = {
-                        startOrGetConversation(
-                            db = db,
-                            currentUserId = currentUser,
-                            otherUserId = post.creatorId,
-                            onResult = { onMessage(post.creatorId, post.title) },
-                            onError = {
-//                                Toast.makeText(
-//                                    context,
-//                                    "Couldn't open chat",
-//                                    Toast.LENGTH_SHORT
-//                                ).show()
-                            }
-                        )
-
+                        onMessage(post.creatorId, post.title)
                     }
                 ) {
                     Icon(
@@ -649,7 +626,7 @@ private fun PersonCard(
 }
 
 private fun Long.toFormattedDateString(): String {
-    val date = java.util.Date(this)
-    val format = java.text.SimpleDateFormat("MM-dd-yyyy", java.util.Locale.getDefault())
+    val date = Date(this)
+    val format = SimpleDateFormat("MM-dd-yyyy", Locale.getDefault())
     return format.format(date)
 }
