@@ -449,9 +449,22 @@ private fun PersonCard(
     onMessage: (otherUserId: String, otherName: String) -> Unit,
     onDeleted: (String) -> Unit
 ) {
-    // START AS NOT SAVED
     var isSaved by remember { mutableStateOf(false) }
     val canDelete = post.creatorId == currentUser
+
+    // Initialize favorite state from Firestore
+    androidx.compose.runtime.LaunchedEffect(post.postId, currentUser) {
+        if (currentUser.isNotBlank()) {
+            db.collection("users")
+                .document(currentUser)
+                .collection("favoritePeoplePosts")
+                .document(post.postId)
+                .get()
+                .addOnSuccessListener { snap ->
+                    isSaved = snap.exists()
+                }
+        }
+    }
 
     val leaseText: String = when {
         !post.leaseStartDate.isNullOrBlank() && !post.leaseEndDate.isNullOrBlank() ->
@@ -600,8 +613,35 @@ private fun PersonCard(
                 }
 
                 IconButton(onClick = {
-                    isSaved = !isSaved
-                    onShowToast(if (isSaved) "Saved" else "Removed from saved")
+                    if (currentUser.isBlank()) {
+                        onShowToast("Please log in to save")
+                        return@IconButton
+                    }
+
+                    val favDoc = db.collection("users")
+                        .document(currentUser)
+                        .collection("favoritePeoplePosts")
+                        .document(post.postId)
+
+                    if (!isSaved) {
+                        favDoc.set(post)
+                            .addOnSuccessListener {
+                                isSaved = true
+                                onShowToast("Saved")
+                            }
+                            .addOnFailureListener {
+                                onShowToast("Save failed")
+                            }
+                    } else {
+                        favDoc.delete()
+                            .addOnSuccessListener {
+                                isSaved = false
+                                onShowToast("Removed from saved")
+                            }
+                            .addOnFailureListener {
+                                onShowToast("Remove failed")
+                            }
+                    }
                 }) {
                     Icon(
                         imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
