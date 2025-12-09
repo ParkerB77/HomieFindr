@@ -66,6 +66,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DisplayMode
@@ -426,6 +427,7 @@ private fun PersonCard(
     // START AS NOT SAVED
     var isSaved by remember { mutableStateOf(false) }
     val canDelete = post.creatorId == currentUser
+    val context = LocalContext
 
     val leaseText: String = when {
         !post.leaseStartDate.isNullOrBlank() && !post.leaseEndDate.isNullOrBlank() ->
@@ -580,6 +582,31 @@ private fun PersonCard(
                     Icon(
                         imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                         contentDescription = "Saved"
+                    )
+                }
+
+                // message button
+                IconButton(
+                    onClick = {
+                        startOrGetConversation(
+                            db = db,
+                            currentUserId = currentUser,
+                            otherUserId = post.creatorId,
+                            onResult = onClickPerson,
+                            onError = {
+//                                Toast.makeText(
+//                                    context,
+//                                    "Couldn't open chat",
+//                                    Toast.LENGTH_SHORT
+//                                ).show()
+                            }
+                        )
+
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ChatBubble,
+                        contentDescription = "Chat Button"
                     )
                 }
             }

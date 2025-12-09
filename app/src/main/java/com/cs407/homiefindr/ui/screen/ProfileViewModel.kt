@@ -31,7 +31,7 @@ data class ProfileUiState(
     val errorMessage: String? = null
 )
 
-class ProfileViewModel : ViewModel() {
+class ProfileViewModel() : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState = _uiState.asStateFlow()
