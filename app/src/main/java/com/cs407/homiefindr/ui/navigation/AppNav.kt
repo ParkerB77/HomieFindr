@@ -151,10 +151,14 @@ private fun NavGraph(
             val currentUserId = Firebase.auth.currentUser?.uid ?: ""
 
             PeopleScreen(
-                onClickPerson = { otherUserId, otherName ->
+                onClickPerson = { otherUserId ->
                     // go to other person's profile
                     nav.navigate("OthersProfileScreen/$otherUserId")
                 },
+//                onClickPerson = { otherUserId ->
+//                    // go to other person's profile
+//                    nav.navigate("OthersProfileScreen/$otherUserId")
+//                },
                 onMessage = { otherUserId, otherName ->
                     if (currentUserId.isBlank()) {
                         // could show a toast later
