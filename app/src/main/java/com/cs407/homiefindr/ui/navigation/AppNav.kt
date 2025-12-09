@@ -6,8 +6,13 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -17,12 +22,21 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.cs407.homiefindr.ui.screen.*
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.ktx.Firebase
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.auth.ktx.auth
+import com.cs407.homiefindr.ui.screen.AddPeopleScreen
+import com.cs407.homiefindr.ui.screen.AddPostScreen
+import com.cs407.homiefindr.ui.screen.ApartmentsScreen
+import com.cs407.homiefindr.ui.screen.ChatScreen
+import com.cs407.homiefindr.ui.screen.FavoriteScreen
+import com.cs407.homiefindr.ui.screen.LoginPage
+import com.cs407.homiefindr.ui.screen.MessagesListScreen
+import com.cs407.homiefindr.ui.screen.OthersProfileScreen
+import com.cs407.homiefindr.ui.screen.PeopleScreen
+import com.cs407.homiefindr.ui.screen.ProfileScreen
 import com.cs407.homiefindr.ui.screen.startOrGetConversation
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 sealed class Route(val route: String) {
     data object Login : Route("login")
@@ -32,17 +46,16 @@ sealed class Route(val route: String) {
     data object Chat : Route("chat/{chatId}")
 
     data object Profile : Route("profile")
-
     data object Favorites : Route("favorites")
 
     data object OtherProfile : Route("OthersProfileScreen/{uid}")
 
     data object AddPerson : Route("AddPeopleScreen")
-
     data object AddApartment : Route("AddPostScreen")
 }
 
 data class BottomItem(val route: String, val label: String, val icon: ImageVector)
+
 private val bottomItems = listOf(
     BottomItem(Route.Home.route, "Home", Icons.Filled.Home),
     BottomItem(Route.People.route, "People", Icons.Filled.Groups),
@@ -132,35 +145,35 @@ private fun NavGraph(
         composable(Route.AddApartment.route) {
             AddPostScreen(clickBack = { nav.navigate(Route.Home.route) })
         }
+
         composable(Route.People.route) {
             val db = Firebase.firestore
             val currentUserId = Firebase.auth.currentUser?.uid ?: ""
 
             PeopleScreen(
-                onClickPerson = { otherUserId ->
-                    //navigate to other person's profile
+                onClickPerson = { otherUserId, otherName ->
+                    // go to other person's profile
                     nav.navigate("OthersProfileScreen/$otherUserId")
                 },
                 onMessage = { otherUserId, otherName ->
                     if (currentUserId.isBlank()) {
-                        // 这里可以以后加个 Toast 提示“未登录”
-                        return@PeopleScreen          // 或者直接 return@PeopleScreen，不报错就行
+                        // could show a toast later
+                    } else {
+                        startOrGetConversation(
+                            db = db,
+                            currentUserId = currentUserId,
+                            otherUserId = otherUserId,
+                            otherUserName = otherName,
+                            onResult = { chatId ->
+                                nav.navigate("chat/$chatId")
+                            }
+                        )
                     }
-
-                    startOrGetConversation(
-                        db = db,
-                        currentUserId = currentUserId,
-                        otherUserId = otherUserId,
-                        otherUserName = otherName,
-                        onResult = { chatId ->          // ★ 显式传 onResult
-                            nav.navigate("chat/$chatId")
-                        }
-                        // onError 用默认的就行，不写
-                    )
                 },
                 onClickAdd = { nav.navigate(Route.AddPerson.route) }
             )
         }
+
         messagesGraph(nav)
 
         composable(
