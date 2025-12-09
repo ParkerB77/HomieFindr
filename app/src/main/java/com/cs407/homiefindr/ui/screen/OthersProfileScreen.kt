@@ -188,12 +188,8 @@ fun OthersProfileScreen(
                                         onError = {onBack}
                                     )
 
-                                    Toast.makeText(
-                                        context,
-                                        "Successfully made chat",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
                                 } catch(e: Exception) {
+                                    //Error message for chat issues
                                     Toast.makeText(
                                         context,
                                         "Couldn't open chat",
