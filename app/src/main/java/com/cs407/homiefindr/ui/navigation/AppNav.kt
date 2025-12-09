@@ -19,6 +19,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.cs407.homiefindr.ui.screen.*
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.auth.ktx.auth
+import com.cs407.homiefindr.ui.screen.startOrGetConversation
 
 sealed class Route(val route: String) {
     data object Login : Route("login")
@@ -127,8 +131,27 @@ private fun NavGraph(
             AddPostScreen(clickBack = { nav.navigate(Route.Home.route) })
         }
         composable(Route.People.route) {
+            val db = Firebase.firestore
+            val currentUserId = Firebase.auth.currentUser?.uid ?: ""
+
             PeopleScreen(
-                onClickPerson = { uid -> nav.navigate("OthersProfileScreen/$uid") },
+                onClickPerson = { otherUserId, otherName ->
+                    if (currentUserId.isBlank()) {
+                        // 这里可以以后加个 Toast 提示“未登录”
+                        return@PeopleScreen          // 或者直接 return@PeopleScreen，不报错就行
+                    }
+
+                    startOrGetConversation(
+                        db = db,
+                        currentUserId = currentUserId,
+                        otherUserId = otherUserId,
+                        otherUserName = otherName,
+                        onResult = { chatId ->          // ★ 显式传 onResult
+                            nav.navigate("chat/$chatId")
+                        }
+                        // onError 用默认的就行，不写
+                    )
+                },
                 onClickAdd = { nav.navigate(Route.AddPerson.route) }
             )
         }
