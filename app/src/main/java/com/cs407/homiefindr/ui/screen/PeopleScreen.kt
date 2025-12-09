@@ -71,7 +71,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeopleScreen(
-    onClickPerson: (otherUserId: String, otherName: String) -> Unit,
+    onClickPerson: (otherUserId: String) -> Unit,
     onMessage: (otherUserId: String, otherName: String) -> Unit,
     onClickAdd: () -> Unit,
     vm: PeopleViewModel = viewModel()
@@ -445,7 +445,7 @@ private fun PersonCard(
     currentUser: String,
     onShowImages: (List<String>) -> Unit,
     onShowToast: (String) -> Unit,
-    onClickPerson: (otherUserId: String, otherName: String) -> Unit,
+    onClickPerson: (otherUserId: String) -> Unit,
     onMessage: (otherUserId: String, otherName: String) -> Unit,
     onDeleted: (String) -> Unit
 ) {
@@ -526,7 +526,7 @@ private fun PersonCard(
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable {
-                            onClickPerson(post.creatorId, post.title)
+                            onClickPerson(post.creatorId)
                         }
                     )
                 }
