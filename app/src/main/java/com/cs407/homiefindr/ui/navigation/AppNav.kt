@@ -137,7 +137,11 @@ private fun NavGraph(
             val currentUserId = Firebase.auth.currentUser?.uid ?: ""
 
             PeopleScreen(
-                onClickPerson = { otherUserId, otherName ->
+                onClickPerson = { otherUserId ->
+                    //navigate to other person's profile
+                    nav.navigate("OthersProfileScreen/$otherUserId")
+                },
+                onMessage = { otherUserId, otherName ->
                     if (currentUserId.isBlank()) {
                         // 这里可以以后加个 Toast 提示“未登录”
                         return@PeopleScreen          // 或者直接 return@PeopleScreen，不报错就行

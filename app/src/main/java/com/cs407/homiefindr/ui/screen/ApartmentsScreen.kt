@@ -447,6 +447,7 @@ fun ApartmentCard(
 ) {
     var isSaved by remember { mutableStateOf(false) }
     val canDelete = post.ownerId == currentUser
+    val context = LocalContext.current
 
     // Firestore reference for this user's favorite apartments
     val favoritesRef = remember(currentUser) {
@@ -636,7 +637,7 @@ fun ApartmentCard(
                 }
 
 
-                // message
+                // message button
                 IconButton(
                     onClick = {
                         startOrGetConversation(
@@ -644,8 +645,15 @@ fun ApartmentCard(
                             currentUserId = currentUser,
                             otherUserId = post.ownerId,
                             onResult = openChat,
-                            onError = { }
+                            onError = {
+                                Toast.makeText(
+                                    context,
+                                    "Couldn't open chat",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
                         )
+
                     }
                 ) {
                     Icon(
