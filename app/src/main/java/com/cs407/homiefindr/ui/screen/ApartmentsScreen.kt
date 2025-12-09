@@ -44,6 +44,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -435,7 +436,7 @@ fun ApartmentsScreen(
 }
 
 @Composable
-private fun ApartmentCard(
+fun ApartmentCard(
     post: ApartmentPost,
     openChat: (String) -> Unit,
     db: FirebaseFirestore,
@@ -446,6 +447,24 @@ private fun ApartmentCard(
 ) {
     var isSaved by remember { mutableStateOf(false) }
     val canDelete = post.ownerId == currentUser
+
+    // Firestore reference for this user's favorite apartments
+    val favoritesRef = remember(currentUser) {
+        db.collection("users")
+            .document(currentUser)
+            .collection("favoriteApartments")
+    }
+
+    // Initialize saved state from Firestore
+    LaunchedEffect(post.id, currentUser) {
+        if (currentUser.isNotBlank()) {
+            favoritesRef.document(post.id)
+                .get()
+                .addOnSuccessListener { doc ->
+                    isSaved = doc.exists()
+                }
+        }
+    }
 
     ElevatedCard(
         modifier = Modifier
@@ -583,8 +602,32 @@ private fun ApartmentCard(
                 }
 
                 IconButton(onClick = {
-                    isSaved = !isSaved
-                    onShowToast(if (isSaved) "Saved" else "Removed from saved")
+                    if (currentUser.isBlank()) {
+                        onShowToast("Please sign in to save listings")
+                        return@IconButton
+                    }
+
+                    val docRef = favoritesRef.document(post.id)
+
+                    if (!isSaved) {
+                        docRef.set(post)
+                            .addOnSuccessListener {
+                                isSaved = true
+                                onShowToast("Saved")
+                            }
+                            .addOnFailureListener {
+                                onShowToast("Failed to save")
+                            }
+                    } else {
+                        docRef.delete()
+                            .addOnSuccessListener {
+                                isSaved = false
+                                onShowToast("Removed from saved")
+                            }
+                            .addOnFailureListener {
+                                onShowToast("Failed to remove")
+                            }
+                    }
                 }) {
                     Icon(
                         imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,

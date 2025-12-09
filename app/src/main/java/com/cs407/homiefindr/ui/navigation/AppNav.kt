@@ -33,6 +33,8 @@ sealed class Route(val route: String) {
 
     data object Profile : Route("profile")
 
+    data object Favorites : Route("favorites")
+
     data object OtherProfile : Route("OthersProfileScreen/{uid}")
 
     data object AddPerson : Route("AddPeopleScreen")
@@ -182,7 +184,17 @@ private fun NavGraph(
                         popUpTo(nav.graph.startDestinationId) { inclusive = true }
                         launchSingleTop = true
                     }
+                },
+                onNavigateToFavorites = {
+                    nav.navigate(Route.Favorites.route)
                 }
+            )
+        }
+
+        composable(Route.Favorites.route) {
+            FavoriteScreen(
+                onOpenChat = { chatId -> nav.navigate("chat/$chatId") },
+                onOpenOwnerProfile = { uid -> nav.navigate("OthersProfileScreen/$uid") }
             )
         }
     }

@@ -22,6 +22,12 @@ class FirestoreRepository {
     // ---------- APARTMENT POSTS ----------
     private val apartmentPostsCollection = db.collection("apartmentPosts")
 
+    // Each user's favorite apartments live under users/{uid}/favoriteApartments
+    private fun favoriteApartmentsCollection(userId: String) =
+        db.collection("users")
+            .document(userId)
+            .collection("favoriteApartments")
+
     fun observeApartmentPosts(
         onSuccess: (List<ApartmentPost>) -> Unit,
         onError: (Throwable) -> Unit
@@ -125,6 +131,78 @@ class FirestoreRepository {
             .delete()
             .addOnSuccessListener { onResult(true, null) }
             .addOnFailureListener { e -> onResult(false, e) }
+    }
+
+    // ---------- APARTMENT FAVORITES ----------
+
+    fun observeFavoriteApartments(
+        onSuccess: (List<ApartmentPost>) -> Unit,
+        onError: (Throwable) -> Unit
+    ) {
+        val uid = auth.currentUser?.uid
+            ?: return onError(IllegalStateException("User not logged in"))
+
+        favoriteApartmentsCollection(uid)
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    onError(e)
+                    return@addSnapshotListener
+                }
+                val list = snapshot?.toObjects(ApartmentPost::class.java) ?: emptyList()
+                onSuccess(list)
+            }
+    }
+
+    fun addApartmentToFavorites(
+        post: ApartmentPost,
+        onResult: (Boolean, Throwable?) -> Unit
+    ) {
+        val uid = auth.currentUser?.uid
+            ?: return onResult(false, IllegalStateException("User not logged in"))
+
+        if (post.id.isBlank()) {
+            onResult(false, IllegalArgumentException("Post id is blank"))
+            return
+        }
+
+        favoriteApartmentsCollection(uid)
+            .document(post.id)
+            .set(post)
+            .addOnSuccessListener { onResult(true, null) }
+            .addOnFailureListener { e -> onResult(false, e) }
+    }
+
+    fun removeApartmentFromFavorites(
+        postId: String,
+        onResult: (Boolean, Throwable?) -> Unit
+    ) {
+        val uid = auth.currentUser?.uid
+            ?: return onResult(false, IllegalStateException("User not logged in"))
+
+        favoriteApartmentsCollection(uid)
+            .document(postId)
+            .delete()
+            .addOnSuccessListener { onResult(true, null) }
+            .addOnFailureListener { e -> onResult(false, e) }
+    }
+
+    fun isApartmentFavorite(
+        postId: String,
+        onResult: (Boolean, Throwable?) -> Unit
+    ) {
+        val uid = auth.currentUser?.uid
+            ?: return onResult(false, IllegalStateException("User not logged in"))
+
+        favoriteApartmentsCollection(uid)
+            .document(postId)
+            .get()
+            .addOnSuccessListener { snap ->
+                onResult(snap.exists(), null)
+            }
+            .addOnFailureListener { e ->
+                onResult(false, e)
+            }
     }
 
     // ---------- USERS ----------
