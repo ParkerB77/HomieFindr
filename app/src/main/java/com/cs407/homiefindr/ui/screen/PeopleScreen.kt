@@ -85,7 +85,7 @@ fun PeopleScreen(
     vm: PeopleViewModel = viewModel()
 ) {
     val state = vm.uiState
-    val posts = state.posts
+    val posts = state.filteredPosts
     val db = remember { Firebase.firestore }
     val currentUser = Firebase.auth.currentUser?.uid ?: ""
     val context = LocalContext.current
@@ -379,7 +379,12 @@ fun PeopleScreen(
                         if (!invalidPrice && !invalidDate) {
                             priceRangeError = false
                             dateRangeError = false
-                            // TODO: filter logic with state variables
+                            vm.updateFilters(
+                                minPrice = minPrice.toString(),
+                                maxPrice = maxPrice.toString(),
+                                leaseStartDateMillis = startDate,
+                                leaseEndDateMillis = endDate
+                            )
                             showFilterDialog = false
                         }
                     }
@@ -390,6 +395,14 @@ fun PeopleScreen(
             dismissButton = {
                 TextButton(
                     onClick = {
+                        priceRangeError = false
+                        dateRangeError = false
+                        vm.updateFilters(
+                            minPrice = "",
+                            maxPrice = "",
+                            leaseStartDateMillis = null,
+                            leaseEndDateMillis = null
+                        )
                         showFilterDialog = false
                     }
                 ) {
