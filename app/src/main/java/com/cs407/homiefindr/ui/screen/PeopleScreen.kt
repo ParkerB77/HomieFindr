@@ -60,6 +60,7 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.res.stringResource
@@ -69,9 +70,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DisplayMode
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.ui.text.input.KeyboardType
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -79,7 +80,8 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeopleScreen(
-    onClickPerson: (otherUserId: String, otherName: String) -> Unit,
+    onClickPerson: (otherUserId: String) -> Unit,
+    onMessage: (otherUserId: String, otherName: String) -> Unit,
     onClickAdd: () -> Unit,
     vm: PeopleViewModel = viewModel()
 ) {
@@ -163,6 +165,7 @@ fun PeopleScreen(
                         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                     },
                     onClickPerson = onClickPerson,
+                    onMessage = onMessage,
                     onDeleted = { deletedId ->
                         vm.removePostFromState(deletedId)
                     }
@@ -459,12 +462,26 @@ private fun PersonCard(
     currentUser: String,
     onShowImages: (List<String>) -> Unit,
     onShowToast: (String) -> Unit,
-    onClickPerson: (otherUserId: String, otherName: String) -> Unit,
+    onClickPerson: (otherUserId: String) -> Unit,
+    onMessage: (otherUserId: String, otherName: String) -> Unit,
     onDeleted: (String) -> Unit
 ) {
-    // START AS NOT SAVED
     var isSaved by remember { mutableStateOf(false) }
     val canDelete = post.creatorId == currentUser
+
+    // Initialize favorite state from Firestore
+    androidx.compose.runtime.LaunchedEffect(post.postId, currentUser) {
+        if (currentUser.isNotBlank()) {
+            db.collection("users")
+                .document(currentUser)
+                .collection("favoritePeoplePosts")
+                .document(post.postId)
+                .get()
+                .addOnSuccessListener { snap ->
+                    isSaved = snap.exists()
+                }
+        }
+    }
 
     val leaseText: String = when {
         !post.leaseStartDate.isNullOrBlank() && !post.leaseEndDate.isNullOrBlank() ->
@@ -539,8 +556,7 @@ private fun PersonCard(
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable {
-                            val displayName = post.title
-                            onClickPerson(post.creatorId, displayName)
+                            onClickPerson(post.creatorId)
                         }
                     )
                 }
@@ -605,7 +621,7 @@ private fun PersonCard(
                                 .document(post.postId)
                                 .delete()
                                 .addOnSuccessListener {
-                                    onDeleted(post.postId)      // remove from UI state
+                                    onDeleted(post.postId)
                                     onShowToast("Deleted")
                                 }
                                 .addOnFailureListener {
@@ -622,12 +638,51 @@ private fun PersonCard(
                 }
 
                 IconButton(onClick = {
-                    isSaved = !isSaved
-                    onShowToast(if (isSaved) "Saved" else "Removed from saved")
+                    if (currentUser.isBlank()) {
+                        onShowToast("Please log in to save")
+                        return@IconButton
+                    }
+
+                    val favDoc = db.collection("users")
+                        .document(currentUser)
+                        .collection("favoritePeoplePosts")
+                        .document(post.postId)
+
+                    if (!isSaved) {
+                        favDoc.set(post)
+                            .addOnSuccessListener {
+                                isSaved = true
+                                onShowToast("Saved")
+                            }
+                            .addOnFailureListener {
+                                onShowToast("Save failed")
+                            }
+                    } else {
+                        favDoc.delete()
+                            .addOnSuccessListener {
+                                isSaved = false
+                                onShowToast("Removed from saved")
+                            }
+                            .addOnFailureListener {
+                                onShowToast("Remove failed")
+                            }
+                    }
                 }) {
                     Icon(
                         imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                         contentDescription = "Saved"
+                    )
+                }
+
+                // message button
+                IconButton(
+                    onClick = {
+                        onMessage(post.creatorId, post.title)
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ChatBubble,
+                        contentDescription = "Chat Button"
                     )
                 }
             }
@@ -636,7 +691,7 @@ private fun PersonCard(
 }
 
 private fun Long.toFormattedDateString(): String {
-    val date = java.util.Date(this)
-    val format = java.text.SimpleDateFormat("MM-dd-yyyy", java.util.Locale.getDefault())
+    val date = Date(this)
+    val format = SimpleDateFormat("MM-dd-yyyy", Locale.getDefault())
     return format.format(date)
 }

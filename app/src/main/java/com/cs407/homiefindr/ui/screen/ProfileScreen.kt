@@ -1,31 +1,49 @@
 package com.cs407.homiefindr.ui.screen
 
-import android.net.Uri
+// ★ KTX 版本 Firestore 写法
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import androidx.lifecycle.viewmodel.compose.viewModel
-
-// ★ KTX 版本 Firestore 写法
-import com.google.firebase.firestore.DocumentSnapshot
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
+import coil.compose.AsyncImage
 
 //data class ProfileUiState(
 //    val name: String = "Name",
@@ -33,10 +51,12 @@ import com.google.firebase.ktx.Firebase
 //    val avatarUri: Uri? = null
 //)
 
+
 @Composable
 fun ProfileScreen(
     profileViewModel: ProfileViewModel = viewModel(),
     onNavigateToLogin: () -> Unit,
+    onNavigateToFavorites: () -> Unit,   // ← add this
 ) {
     val state by profileViewModel.uiState.collectAsState()
 
@@ -51,66 +71,6 @@ fun ProfileScreen(
             }
         }
     }
-//    // ★ KTX：直接用 Firebase.firestore
-//    val db = remember { Firebase.firestore }
-//
-//    // ---------- 第一次进入，用 userId 从 Firestore 读 profile ----------
-//    LaunchedEffect(userId) {
-//        if (userId.isNotBlank()) {
-//            db.collection("profiles")
-//                .document(userId)
-//                .get()
-//                .addOnSuccessListener { doc: DocumentSnapshot ->
-//                    if (doc.exists()) {
-//                        val name = doc.getString("name") ?: "Jason"
-//                        val bio = doc.getString("bio") ?: ""
-//                        val avatarUrl = doc.getString("avatarUrl")
-//
-//                        state = state.copy(
-//                            name = name,
-//                            bio = bio,
-//                            avatarUri = avatarUrl?.let { Uri.parse(it) }
-//                        )
-//                    }
-//                }
-//        }
-//    }
-//
-//    // ---------- 点击 Done 时：把当前资料写回 Firestore ----------
-//
-//    fun saveProfileToFirestore() {
-//        if (userId.isBlank()) return
-//
-//        val data = hashMapOf(
-//            "name" to state.name,
-//            "bio" to state.bio,
-//            "avatarUrl" to state.avatarUri?.toString()
-//        )
-//
-//        db.collection("profiles")
-//            .document(userId)
-//            .set(data)
-//    }
-//
-//    // ---------- 删除 profile 文档 ----------
-//    fun deleteProfileFromFirestore() {
-//        if (userId.isBlank()) return
-//
-//        db.collection("profiles")
-//            .document(userId)
-//            .delete()
-//            .addOnSuccessListener {
-//                // when profile is really gone, trigger logout + nav
-//                onDeleteAndLogout()
-//            }
-//            .addOnFailureListener { e ->
-//                // optional: show error somewhere
-//                println("Delete failed: ${e.message}")
-//            }
-//    }
-//
-//
-//    // ---------- 选头像 ----------
 
     val pickAvatar = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -127,7 +87,7 @@ fun ProfileScreen(
         ) {
             CircularProgressIndicator()
         }
-        return // stops updating ui when loading
+        return
     }
 
     if (state.errorMessage != null) {
@@ -137,7 +97,7 @@ fun ProfileScreen(
         ) {
             Text(text = "Error: ${state.errorMessage}")
         }
-        return // stops updating ui when there's an error
+        return
     }
 
     // --------------------- Layout ---------------------
@@ -149,11 +109,10 @@ fun ProfileScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(24.dp))
-        // for user to go into their favorite
+
+        // Favorites button → navigate to FavoriteScreen
         FloatingActionButton(
-            onClick = {
-                // TODO: go to FavoriteScreen
-            },
+            onClick = { onNavigateToFavorites() },   // ← call the lambda
             modifier = Modifier.align(Alignment.End)
         ) {
             Row(
@@ -214,11 +173,10 @@ fun ProfileScreen(
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedButton(onClick = {
                 if (editing) {
-                profileViewModel.saveProfile()
+                    profileViewModel.saveProfile()
                 }
                 editing = !editing
             }) {
-
                 Text(if (editing) "Save" else "Edit")
             }
             Button(onClick = {

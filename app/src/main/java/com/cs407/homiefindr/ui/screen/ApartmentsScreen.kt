@@ -1,6 +1,7 @@
 package com.cs407.homiefindr.ui.screen
 
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,6 +45,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -168,7 +170,8 @@ fun ApartmentsScreen(
             onClick = onClickAdd,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(bottom = 110.dp, end = 16.dp)
+                .padding(bottom = 150.dp, end = 16.dp)
+                .background(color = Color.White)
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
@@ -447,7 +450,7 @@ fun ApartmentsScreen(
 }
 
 @Composable
-private fun ApartmentCard(
+fun ApartmentCard(
     post: ApartmentPost,
     openChat: (String) -> Unit,
     db: FirebaseFirestore,
@@ -458,6 +461,25 @@ private fun ApartmentCard(
 ) {
     var isSaved by remember { mutableStateOf(false) }
     val canDelete = post.ownerId == currentUser
+    val context = LocalContext.current
+
+    // Firestore reference for this user's favorite apartments
+    val favoritesRef = remember(currentUser) {
+        db.collection("users")
+            .document(currentUser)
+            .collection("favoriteApartments")
+    }
+
+    // Initialize saved state from Firestore
+    LaunchedEffect(post.id, currentUser) {
+        if (currentUser.isNotBlank()) {
+            favoritesRef.document(post.id)
+                .get()
+                .addOnSuccessListener { doc ->
+                    isSaved = doc.exists()
+                }
+        }
+    }
 
     ElevatedCard(
         modifier = Modifier
@@ -599,8 +621,32 @@ private fun ApartmentCard(
                 }
 
                 IconButton(onClick = {
-                    isSaved = !isSaved
-                    onShowToast(if (isSaved) "Saved" else "Removed from saved")
+                    if (currentUser.isBlank()) {
+                        onShowToast("Please sign in to save listings")
+                        return@IconButton
+                    }
+
+                    val docRef = favoritesRef.document(post.id)
+
+                    if (!isSaved) {
+                        docRef.set(post)
+                            .addOnSuccessListener {
+                                isSaved = true
+                                onShowToast("Saved")
+                            }
+                            .addOnFailureListener {
+                                onShowToast("Failed to save")
+                            }
+                    } else {
+                        docRef.delete()
+                            .addOnSuccessListener {
+                                isSaved = false
+                                onShowToast("Removed from saved")
+                            }
+                            .addOnFailureListener {
+                                onShowToast("Failed to remove")
+                            }
+                    }
                 }) {
                     Icon(
                         imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
@@ -609,7 +655,7 @@ private fun ApartmentCard(
                 }
 
 
-                // message
+                // message button
                 IconButton(
                     onClick = {
                         startOrGetConversation(
@@ -617,8 +663,15 @@ private fun ApartmentCard(
                             currentUserId = currentUser,
                             otherUserId = post.ownerId,
                             onResult = openChat,
-                            onError = { }
+                            onError = {
+                                Toast.makeText(
+                                    context,
+                                    "Couldn't open chat",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
                         )
+
                     }
                 ) {
                     Icon(
