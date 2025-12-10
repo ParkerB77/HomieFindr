@@ -22,7 +22,8 @@ class AddPeopleViewModel : ViewModel() {
         name: String,
         bio: String,
         maxPrice: Int?,
-        leasePeriod: String,
+        leaseStartDate: String?,
+        leaseEndDate: String?,
         imageUris: List<Uri>,
         onDone: (Boolean) -> Unit
     ) {
@@ -34,8 +35,8 @@ class AddPeopleViewModel : ViewModel() {
             bio = bio,
             priceMin = null,
             priceMax = maxPrice,
-            leaseStartDate = leasePeriod,
-            leaseEndDate = null,
+            leaseStartDate = leaseStartDate,
+            leaseEndDate = leaseEndDate,
             imageUris = imageUris
         ) { ok ->
             isSaving = false

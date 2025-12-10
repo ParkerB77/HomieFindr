@@ -66,6 +66,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DisplayMode
@@ -107,9 +108,9 @@ fun PeopleScreen(
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
     var dateRangeError by remember { mutableStateOf(false) }
-    var forMale by remember { mutableStateOf(false) }
-    var forFemale by remember { mutableStateOf(false) }
-    var petsAllowed by remember { mutableStateOf(false) }
+//    var forMale by remember { mutableStateOf(false) }
+//    var forFemale by remember { mutableStateOf(false) }
+//    var petsAllowed by remember { mutableStateOf(false) }
     // rest of the filter options ....
     Box(
         modifier = Modifier.fillMaxSize()
@@ -131,7 +132,15 @@ fun PeopleScreen(
                 modifier = Modifier.weight(1f)
             )
 
-            IconButton(onClick = { showFilterDialog = true }) {
+            IconButton(onClick = {
+                minPrice = state.minPrice
+                maxPrice = state.maxPrice
+                leaseStartDateMillis = state.leaseStartDateMillis
+                leaseEndDateMillis = state.leaseEndDateMillis
+                priceRangeError = false
+                dateRangeError = false
+                showFilterDialog = true
+            }) {
                 Icon(
                     imageVector = Icons.Default.FilterAlt,
                     contentDescription = "filter button"
@@ -317,33 +326,33 @@ fun PeopleScreen(
                             )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text("Open for:", fontSize = 16.sp)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(
-                            checked = petsAllowed,
-                            onCheckedChange = { petsAllowed = it }
-                        )
-                        Text("Pets")
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(
-                            checked = forMale,
-                            onCheckedChange = { forMale = it }
-                        )
-                        Text("For Male")
-                        Checkbox(
-                            checked = forFemale,
-                            onCheckedChange = { forFemale = it }
-                        )
-                        Text("For Female")
-                    }
+//                    // other options ignored for now
+//                    Spacer(modifier = Modifier.height(16.dp))
+//
+//                    Text("Open for:", fontSize = 16.sp)
+//                    Row(
+//                        verticalAlignment = Alignment.CenterVertically
+//                    ) {
+//                        Checkbox(
+//                            checked = petsAllowed,
+//                            onCheckedChange = { petsAllowed = it }
+//                        )
+//                        Text("Pets")
+//                    }
+//                    Row(
+//                        verticalAlignment = Alignment.CenterVertically
+//                    ) {
+//                        Checkbox(
+//                            checked = forMale,
+//                            onCheckedChange = { forMale = it }
+//                        )
+//                        Text("For Male")
+//                        Checkbox(
+//                            checked = forFemale,
+//                            onCheckedChange = { forFemale = it }
+//                        )
+//                        Text("For Female")
+//                    }
                 }
             },
             confirmButton = {
@@ -553,11 +562,19 @@ private fun PersonCard(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(top = 4.dp)
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.DateRange,
+                            contentDescription = "Date Icon"
+                        )
                         Text(
                             text = leaseText,
                             modifier = Modifier.padding(end = 12.dp)
                         )
-
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(top = 4.dp)
+                    ) {
                         Icon(
                             imageVector = Icons.Default.AttachMoney,
                             contentDescription = "Money Icon"

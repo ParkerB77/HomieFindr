@@ -21,7 +21,8 @@ class AddPostViewModel : ViewModel() {
         title: String,
         content: String,
         price: Int,
-        leasePeriod: String,
+        leaseStartDate: String?,
+        leaseEndDate: String?,
         imageUris: List<Uri>,
         onDone: (Boolean) -> Unit
     ) {
@@ -32,7 +33,8 @@ class AddPostViewModel : ViewModel() {
             title = title,
             content = content,
             price = price,
-            leasePeriod = leasePeriod,
+            leaseStartDate = leaseStartDate,
+            leaseEndDate = leaseEndDate,
             imageUris = imageUris
         ) { ok, err ->
             isSaving = false

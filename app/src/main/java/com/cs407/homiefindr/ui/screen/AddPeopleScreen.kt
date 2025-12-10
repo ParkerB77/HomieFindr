@@ -8,6 +8,7 @@ import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,13 +24,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,10 +44,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+//import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import java.text.SimpleDateFormat
+import java.util.Locale
 
+private fun Long.toFormattedDateString(): String {
+    val date = java.util.Date(this)
+    val format = SimpleDateFormat("MM-dd-yyyy", Locale.getDefault())
+    return format.format(date)
+}
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddPeopleScreen(
     clickBack: () -> Unit,
@@ -50,7 +65,14 @@ fun AddPeopleScreen(
     var name by remember { mutableStateOf("") }
     var bio by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
-    var leasePeriod by remember { mutableStateOf("") }
+//    var leasePeriod by remember { mutableStateOf("") }
+
+    var leaseStartDateMillis by remember { mutableStateOf<Long?>(null) }
+    var leaseEndDateMillis by remember { mutableStateOf<Long?>(null) }
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
+
+
     var imageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
 
     val context = LocalContext.current
@@ -157,12 +179,39 @@ fun AddPeopleScreen(
                 )
 
                 Text("Lease period:")
-                OutlinedTextField(
-                    value = leasePeriod,
-                    onValueChange = { leasePeriod = it },
-                    label = { Text("Lease period") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedTextField(
+                            value = leaseStartDateMillis?.toFormattedDateString() ?: "",
+                            onValueChange = { /* Read-only */ },
+                            label = { Text("Start Date") },
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clickable { showStartDatePicker = true }
+                        )
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedTextField(
+                            value = leaseEndDateMillis?.toFormattedDateString() ?: "",
+                            onValueChange = { /* Read-only */ },
+                            label = { Text("End Date") },
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clickable { showEndDatePicker = true }
+                        )
+                    }
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -181,20 +230,31 @@ fun AddPeopleScreen(
                             if (name.isBlank() ||
                                 bio.isBlank() ||
                                 price.isBlank() ||
-                                leasePeriod.isBlank()
+                                leaseStartDateMillis == null ||
+                                leaseEndDateMillis == null
                             ) {
                                 Toast.makeText(
                                     context,
                                     "Please fill all fields",
                                     Toast.LENGTH_SHORT
                                 ).show()
-                            } else {
+                            }
+                            else if (leaseEndDateMillis!! < leaseStartDateMillis!!) {
+                                Toast.makeText(
+                                    context,
+                                    "End date must be after start date",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+
+                            }
+                            else {
                                 val maxPrice = price.toIntOrNull()
                                 vm.savePeoplePost(
                                     name = name,
                                     bio = bio,
                                     maxPrice = maxPrice,
-                                    leasePeriod = leasePeriod,
+                                    leaseStartDate = leaseStartDateMillis?.toFormattedDateString(),
+                                    leaseEndDate = leaseEndDateMillis?.toFormattedDateString(),
                                     imageUris = imageUris
                                 ) { ok ->
                                     if (ok) {
@@ -215,6 +275,55 @@ fun AddPeopleScreen(
                     }
                 }
             }
+        }
+    }
+    // Date Picker Dialog for Lease Start Date
+    if (showStartDatePicker) {
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = leaseStartDateMillis)
+        DatePickerDialog(
+            onDismissRequest = { showStartDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        leaseStartDateMillis = datePickerState.selectedDateMillis
+                        showStartDatePicker = false
+                    }
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStartDatePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    // Date Picker Dialog for Lease End Date
+    if (showEndDatePicker) {
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = leaseEndDateMillis)
+        DatePickerDialog(
+            onDismissRequest = { showEndDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        leaseEndDateMillis = datePickerState.selectedDateMillis
+                        showEndDatePicker = false
+                    }
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEndDatePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }

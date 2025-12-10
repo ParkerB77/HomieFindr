@@ -65,6 +65,9 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import java.util.Date
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -100,9 +103,9 @@ fun ApartmentsScreen(
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
     var dateRangeError by remember { mutableStateOf(false) }
-    var forMale by remember { mutableStateOf(false) }
-    var forFemale by remember { mutableStateOf(false) }
-    var petsAllowed by remember { mutableStateOf(false) }
+//    var forMale by remember { mutableStateOf(false) }
+//    var forFemale by remember { mutableStateOf(false) }
+//    var petsAllowed by remember { mutableStateOf(false) }
     // rest of the filter options ....
     Box(
         modifier = Modifier.fillMaxSize()
@@ -124,7 +127,15 @@ fun ApartmentsScreen(
                 modifier = Modifier.weight(1f)
             )
 
-            IconButton(onClick = { showFilterDialog = true }) {
+            IconButton(onClick = {
+                minPrice = state.minPrice
+                maxPrice = state.maxPrice
+                leaseStartDateMillis = state.leaseStartDateMillis
+                leaseEndDateMillis = state.leaseEndDateMillis
+                priceRangeError = false
+                dateRangeError = false
+                showFilterDialog = true
+            }) {
                 Icon(
                     imageVector = Icons.Default.FilterAlt,
                     contentDescription = "filter button"
@@ -308,33 +319,33 @@ fun ApartmentsScreen(
                             )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text("Open for:", fontSize = 16.sp)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(
-                            checked = petsAllowed,
-                            onCheckedChange = { petsAllowed = it }
-                        )
-                        Text("Pets")
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(
-                            checked = forMale,
-                            onCheckedChange = { forMale = it }
-                        )
-                        Text("For Male")
-                        Checkbox(
-                            checked = forFemale,
-                            onCheckedChange = { forFemale = it }
-                        )
-                        Text("For Female")
-                    }
+//                    // other options ignored for now
+//                    Spacer(modifier = Modifier.height(16.dp))
+//
+//                    Text("Open for:", fontSize = 16.sp)
+//                    Row(
+//                        verticalAlignment = Alignment.CenterVertically
+//                    ) {
+//                        Checkbox(
+//                            checked = petsAllowed,
+//                            onCheckedChange = { petsAllowed = it }
+//                        )
+//                        Text("Pets")
+//                    }
+//                    Row(
+//                        verticalAlignment = Alignment.CenterVertically
+//                    ) {
+//                        Checkbox(
+//                            checked = forMale,
+//                            onCheckedChange = { forMale = it }
+//                        )
+//                        Text("For Male")
+//                        Checkbox(
+//                            checked = forFemale,
+//                            onCheckedChange = { forFemale = it }
+//                        )
+//                        Text("For Female")
+//                    }
                 }
             },
             confirmButton = {
@@ -360,6 +371,7 @@ fun ApartmentsScreen(
                             priceRangeError = false
                             dateRangeError = false
                             // TODO: filter logic with state variables
+
                             showFilterDialog = false
                         }
                     }
@@ -529,13 +541,17 @@ private fun ApartmentCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.DateRange,
-                            contentDescription = "icon for time"
+                            contentDescription = "icon for date"
                         )
                         Text(
                             text = post.leasePeriod,
                             modifier = Modifier.padding(start = 4.dp)
                         )
-
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(top = 4.dp)
+                    ) {
                         Icon(
                             imageVector = Icons.Default.AttachMoney,
                             contentDescription = "Money Icon",

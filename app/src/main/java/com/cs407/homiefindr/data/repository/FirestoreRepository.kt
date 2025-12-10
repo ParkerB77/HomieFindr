@@ -42,7 +42,8 @@ class FirestoreRepository {
         title: String,
         content: String,
         price: Int,
-        leasePeriod: String,
+        leaseStartDate: String?,
+        leaseEndDate: String?,
         imageUris: List<Uri>,
         onResult: (Boolean, Throwable?) -> Unit
     ) {
@@ -54,6 +55,21 @@ class FirestoreRepository {
 
         val docRef = apartmentPostsCollection.document()
         val postId = docRef.id
+
+        val leasePeriod = when {
+            !leaseStartDate.isNullOrEmpty() && !leaseEndDate.isNullOrEmpty() -> {
+                "$leaseStartDate - $leaseEndDate"
+            }
+            !leaseStartDate.isNullOrEmpty() -> {
+                "From $leaseStartDate"
+            }
+            !leaseEndDate.isNullOrEmpty() -> {
+                "Until $leaseEndDate"
+            }
+            else -> {
+                ""
+            }
+        }
 
         if (imageUris.isEmpty()) {
             val post = ApartmentPost(
