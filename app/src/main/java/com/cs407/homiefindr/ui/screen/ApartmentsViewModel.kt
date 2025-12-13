@@ -34,7 +34,8 @@ data class ApartmentsUiState(
                 currentPosts = currentPosts.filter {
                     it.title.contains(searchQuery, ignoreCase = true) ||
                             it.content.contains(searchQuery, ignoreCase = true) ||
-                            it.leasePeriod.contains(searchQuery, ignoreCase = true)
+                            it.content.contains(searchQuery, ignoreCase = true) ||
+                            (it.leasePeriod.contains(searchQuery, ignoreCase = true))
                 }
             }
 
@@ -53,6 +54,34 @@ data class ApartmentsUiState(
             val filterStartDate = leaseStartDateMillis?.let { Date(it) }
             val filterEndDate = leaseEndDateMillis?.let { Date(it) }
 
+            if (filterStartDate != null) {
+                currentPosts = currentPosts.filter { post ->
+                    post.leaseStartDate?.let { dateString ->
+                        try {
+                            val postDate = dateFormat.parse(dateString)
+                            postDate != null && !postDate.before(filterStartDate) // Post's start date is on or after filter's start date
+                        } catch (e: Exception) {
+                            false // Cannot parse, exclude from filter
+                        }
+                    } ?: false // If post has no start date, it doesn't match a specific filterStartDate
+                }
+            }
+
+            if (filterEndDate != null) {
+                currentPosts = currentPosts.filter { post ->
+                    post.leaseEndDate?.let { dateString ->
+                        try {
+                            val postDate = dateFormat.parse(dateString)
+                            postDate != null && !postDate.after(filterEndDate) // Post's end date is on or before filter's end date
+                        } catch (e: Exception) {
+                            false // Cannot parse, exclude from filter
+                        }
+                    } ?: false // If post has no end date, it doesn't match a specific filterEndDate
+                }
+            }
+            // gender, pets options ignored for now
+            return currentPosts
+            /*
             if (filterStartDate != null || filterEndDate != null) {
                 currentPosts = currentPosts.filter { post ->
                     val parts = post.leasePeriod.split("-")
@@ -90,6 +119,7 @@ data class ApartmentsUiState(
             }
             // gender, pets options ignored for now
             return currentPosts
+            */
         }
 }
 

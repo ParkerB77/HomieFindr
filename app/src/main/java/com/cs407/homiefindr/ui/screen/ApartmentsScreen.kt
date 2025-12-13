@@ -92,8 +92,7 @@ fun ApartmentsScreen(
         if (search.isBlank()) posts
         else posts.filter {
             it.title.contains(search, ignoreCase = true) ||
-                    it.content.contains(search, ignoreCase = true) ||
-                    it.leasePeriod.contains(search, ignoreCase = true)
+                    it.content.contains(search, ignoreCase = true)
         }
     // for filtering
     var showFilterDialog by remember { mutableStateOf(false) }
@@ -493,6 +492,30 @@ fun ApartmentCard(
         }
     }
 
+//    val leaseText: String = when {
+//        !post.leaseStartDate.isNullOrBlank() && !post.leaseEndDate.isNullOrBlank() ->
+//            "${post.leaseStartDate} - ${post.leaseEndDate}"
+//        !post.leaseStartDate.isNullOrBlank() -> post.leaseStartDate!!
+//        !post.leaseEndDate.isNullOrBlank() -> post.leaseEndDate!!
+//        else -> ""
+//    }
+
+//    val priceText: String = when {
+//        post.priceMin != null && post.priceMax != null && post.priceMin != post.priceMax ->
+//            "${post.priceMin} - ${post.priceMax}"
+//        post.priceMin != null -> "${post.priceMin}"
+//        post.priceMax != null -> "${post.priceMax}"
+//        else -> "0"
+//    }
+
+    val leaseText: String = when {
+        !post.leaseStartDate.isNullOrBlank() && !post.leaseEndDate.isNullOrBlank() ->
+            "${post.leaseStartDate} - ${post.leaseEndDate}"
+        !post.leaseStartDate.isNullOrBlank() -> post.leaseStartDate!!
+        !post.leaseEndDate.isNullOrBlank() -> post.leaseEndDate!!
+        else -> post.leasePeriod // Fallback to original leasePeriod string
+    }
+
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -578,7 +601,7 @@ fun ApartmentCard(
                             contentDescription = "icon for date"
                         )
                         Text(
-                            text = post.leasePeriod,
+                            text = leaseText,
                             modifier = Modifier.padding(start = 4.dp)
                         )
                     }

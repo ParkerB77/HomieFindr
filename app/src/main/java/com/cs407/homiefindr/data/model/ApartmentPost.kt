@@ -7,6 +7,8 @@ data class ApartmentPost(
     val content: String = "",
     val price: Int = 0,
     val leasePeriod: String = "",
+    val leaseStartDate: String? = null,
+    val leaseEndDate: String? = null,
     val ownerId: String = "",
     val ownerEmail: String = "",
     val createdAt: Long = System.currentTimeMillis(),
